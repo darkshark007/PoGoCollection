@@ -561,7 +561,7 @@ class Pokemon:
     def id(self):
         return get_id_from_species(self.species)
 
-PKMN_FILE = "Lists/pkList.txt"
+PKMN_FILE = "Lists/PoGoCollection.txt"
 GENERATED_POKEMON_FILE_FULL_CP_RANGE = "Lists/generated_pokemon_full.txt"
 
 # Read in Pokemon file
