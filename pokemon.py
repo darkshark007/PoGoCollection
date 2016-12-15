@@ -233,6 +233,10 @@ class Pokemon:
             level = float(opt.split("_")[0])
             countSum += level
             count += 1
+        if count == 0:
+            species = Species.Species(self.species)
+            count = 1
+            countSum = (((((self.cp-10)/(species.Max_CP-10))*79))/2)+1
         avgLevel = round(((countSum * 2)/count))/2.0
         return avgLevel
 

@@ -265,12 +265,12 @@ def input_pkmn_list_index(max_value):
         inp = int(inp)
         if inp >= max_value or inp < -1:
             print("Index value \'"+str(inp)+"\' is not valid! (Should be between 0-"+str(max_value-1)+", or -1 to cancel)")
-            return input_pkmn_list_index()
+            return input_pkmn_list_index(max_value)
         else:
             return inp
     except ValueError:
         print("Invalid number value \'"+inp+"\'")
-        return input_pkmn_list_index()
+        return input_pkmn_list_index(max_value)
 
 
 def input_pkmn_list_index_list(max_value):
@@ -281,11 +281,11 @@ def input_pkmn_list_index_list(max_value):
             inp[i] = int(inp[i].strip())
             if inp[i] >= max_value or inp[i] < -1:
                 print("Index value \'"+str(inp[i])+"\' is not valid! (Should be between 0-"+str(max_value-1)+", or -1 to cancel)")
-                return input_pkmn_list_index_list()
+                return input_pkmn_list_index_list(max_value)
         return inp
     except ValueError:
         print("Invalid number value \'"+inp+"\'")
-        return input_pkmn_list_index_list()    
+        return input_pkmn_list_index_list(max_value)    
 
 
 def input_remember_setting():

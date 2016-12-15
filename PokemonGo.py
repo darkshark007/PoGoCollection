@@ -15,18 +15,6 @@ import Data.moves as Moves
 import pokemon as PK
 
 
-edit_pokemon_interface = """
-  Edit Pokemon:
-    [n]  Edit Nickname
-    [s]  Edit Species
-    [c]  Edit CP
-    [h]  Edit HP
-    [d]  Edit Dust cost
-    [m1] Edit Quick Move
-    [m2] Edit Charge Move
-    [a]  Edit Appraisal
-    [x]  Exit
-> """
 filter_interface = """
 Select Filter or Sort:
   [x] CLEAR ACTIVE FILTERS
@@ -64,56 +52,6 @@ pkmnList = []
 filteredList = pkmnList
 currentFilter = ""
 savedViews = []
-
-
-# From http://stackoverflow.com/questions/287871/print-in-terminal-with-colors-using-python
-class bcolors:
-    # Colors
-    Red = '\033[31m'
-    Orange = '\033[91m'
-    Yellow = '\033[93m'
-    Gold = '\033[33m'
-    Green = '\033[32m'
-    Lime = '\033[92m'
-    Aqua = '\033[96m'
-    Cyan = '\033[36m'
-    Blue = '\033[34m'
-    Indigo = '\033[94m'
-    Violet = '\033[95m'
-    Magenta = '\033[35m'
-    Black = '\033[30m'
-    Gray = '\033[90m'
-    LightGray = '\033[37m'
-    White = '\033[97m'
-
-    # Highlight Colors
-    BgRed = '\033[41m'
-    BgOrange = '\033[101m'
-    BgYellow = '\033[103m'
-    BgGold = '\033[43m'
-    BgGreen = '\033[42m'
-    BgLime = '\033[102m'
-    BgAqua = '\033[106m'
-    BgCyan = '\033[46m'
-    BgBlue = '\033[44m'
-    BgIndigo = '\033[104m'
-    BgViolet = '\033[105m'
-    BgMagenta = '\033[45m'
-    BgBlack = '\033[40m'
-    BgGray = '\033[100m'
-    BgLightGray = '\033[107m'
-    BgWhite = '\033[47m'
-
-    # Controls/Formatting
-    Clear = '\033[0m'
-    Dim = '\033[2m'
-    Bold = '\033[1m'
-    Underline = '\033[4m'
-    Italic = '\033[3m'
-    Blink = '\033[5m'
-
-    # Test
-    Highlight = '\033[7m' # Highlight?!
 
 
 def list_pokemon():
@@ -300,7 +238,7 @@ Select Command:
             filteredIdxList = UInp.input_pkmn_list_index(len(filteredList))            
             pkmn = filteredList[filteredIdxList]
             clear_screen()
-            edit_pokemon(pkmn)
+            run_edit_pokemon(pkmn)
             print("\n")
             pkmn.calculate_iv_options()
             write_pokemon_collection()
@@ -357,7 +295,7 @@ Select Command:
                         continue
                     idx = UInp.input_number("Idx? \n>  ",0,(len(gymList)-1))
                     pkmn = gymList[idx]
-                    edit_pokemon(pkmn)
+                    run_edit_pokemon(pkmn)
                     pkmn.IVOptions = []
                     print("\n")
                     pkmn.calculate_iv_options(False)
@@ -744,7 +682,19 @@ Mark Pokemon:
         for pkmn in pkmnList:
             pkmn.marked = False
 
-def edit_pokemon(pkmn):
+def run_edit_pokemon(pkmn):
+    edit_pokemon_interface = """
+  Edit Pokemon:
+    [n]  Edit Nickname
+    [s]  Edit Species
+    [c]  Edit CP
+    [h]  Edit HP
+    [d]  Edit Dust cost
+    [m1] Edit Quick Move
+    [m2] Edit Charge Move
+    [a]  Edit Appraisal
+    [x]  Exit
+> """
     while True:
         print(pkmn.name+" ("+pkmn.species+")")
         print "CP: "+str(pkmn.cp)
@@ -755,7 +705,7 @@ def edit_pokemon(pkmn):
             sp = iv.split("_")
             if len(sp) != 2:
                 continue
-            print "L "+sp[0]+"  "+str(_hex_to_int(sp[1][0]))+" / "+str(_hex_to_int(sp[1][1]))+" / "+str(_hex_to_int(sp[1][2]))
+            print "L "+sp[0]+"  "+str(PK._hex_to_int(sp[1][0]))+" / "+str(PK._hex_to_int(sp[1][1]))+" / "+str(PK._hex_to_int(sp[1][2]))
         print
         print "Moves: "+pkmn.move_one+"/"+pkmn.move_two
         print "Appraisal: "+str(pkmn.appraisal)+" / "+str(pkmn.bestStat)+" / "+str(pkmn.statLevel)
@@ -922,6 +872,9 @@ def generate_all_pokemon():
     fio.write_pokemon_to_file(pokeList, GENERATED_POKEMON_FILE_FULL_CP_RANGE)
 
 
+
+
+
 ###########################################
 ##    Pokemon Go Collection Management   ##
 ###########################################
@@ -962,7 +915,7 @@ def read_pokemon_collection():
     # print(pkmn.get_IVs())
     # # Squirt == 587
     # # Snorlax == 611
-    # edit_pokemon(pkmn)
+    # run_edit_pokemon(pkmn)
     # for pk in pkmnList:
     #     print(pk.name+" ("+pk.species+")\t"+str(PK.Pokemon.calculate_gym_attack_score_for_combatants(pk,pkmn)))
     # generate_all_pokemon()
@@ -972,6 +925,77 @@ def write_pokemon_collection():
     sort_pokemon()
     fio.write_pokemon_to_file(pkmnList, PKMN_FILE)
 
+
+
+
+
+##################################
+##    Text Formatting Utility   ##
+##################################
+# Heavily modified from original at:
+#   http://stackoverflow.com/questions/287871/print-in-terminal-with-colors-using-python
+
+class bcolors:
+    # Colors
+    Red = '\033[31m'
+    Orange = '\033[91m'
+    Yellow = '\033[93m'
+    Gold = '\033[33m'
+    Green = '\033[32m'
+    Lime = '\033[92m'
+    Aqua = '\033[96m'
+    Cyan = '\033[36m'
+    Blue = '\033[34m'
+    Indigo = '\033[94m'
+    Violet = '\033[95m'
+    Magenta = '\033[35m'
+    Black = '\033[30m'
+    Gray = '\033[90m'
+    LightGray = '\033[37m'
+    White = '\033[97m'
+
+    # Highlight Colors
+    BgRed = '\033[41m'
+    BgOrange = '\033[101m'
+    BgYellow = '\033[103m'
+    BgGold = '\033[43m'
+    BgGreen = '\033[42m'
+    BgLime = '\033[102m'
+    BgAqua = '\033[106m'
+    BgCyan = '\033[46m'
+    BgBlue = '\033[44m'
+    BgIndigo = '\033[104m'
+    BgViolet = '\033[105m'
+    BgMagenta = '\033[45m'
+    BgBlack = '\033[40m'
+    BgGray = '\033[100m'
+    BgLightGray = '\033[107m'
+    BgWhite = '\033[47m'
+
+    # Controls/Formatting
+    Clear = '\033[0m'
+    Dim = '\033[2m'
+    Bold = '\033[1m'
+    Underline = '\033[4m'
+    Italic = '\033[3m'
+    Blink = '\033[5m'
+
+    # Test
+    Highlight = '\033[7m' # Highlight?!
+
+
+
+
+
+#######################
+##    Main Program   ##
+#######################
+
+# Read in from collection file
 read_pokemon_collection()
+# Write back to collection file, Useful for output refactors/migrations
+# TODO: Implement a write-to-temp-file/rename system, and/or a collection backup system
 write_pokemon_collection()
+
+# Run the main input loop
 run()
