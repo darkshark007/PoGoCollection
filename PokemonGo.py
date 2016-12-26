@@ -22,19 +22,21 @@ Select Filter or Sort:
   [l] Load Saved Filter #Imp
 
   Filter by:
-    [fs] Species Name
-    [ff] Species Family
-    [f-] Min CP
-    [f+] Max CP
-    [f>] Strong against #Imp
-    [f<] Weak against #Imp
+    [fs]  Species Name
+    [ff]  Species Family
+    [f-]  Min CP
+    [f+]  Max CP
+    [f>]  Strong against #Imp
+    [f<]  Weak against #Imp
+    [fm+] Filter out Non-Marked
+    [fm-] Filter out Marked
 
   Sort by:
-    [sn] Name
-    [ss] Species #Imp
-    [sc] CP
-    [s?] Min IVs #Imp
-    [s?] Max IVs #Imp
+    [sn]  Name
+    [ss]  Species #Imp
+    [sc]  CP
+    [si+] Min IVs #Imp
+    [si+] Max IVs #Imp
 > """
 gym_builder_interface = """
 Gym Builder:
@@ -244,7 +246,6 @@ Select Command:
             write_pokemon_collection()
             print("Updated "+pkmn.species)
 
-
         # Mark Pokemon
         elif cmd == "m":
             run_mark_pokemon()
@@ -322,7 +323,8 @@ Select Command:
                         print("Effective Counters:")
                         counters = []
                         for pk in pkmnList:
-                            score = PK.Pokemon.calculate_gym_attack_score_for_combatants(pk,pkmn)
+                            result = PK.Pokemon.calculate_gym_attack_score_for_combatants(pk,pkmn)
+                            score = result['gym_score']
                             shouldAdd = False
                             if score >= min_value:
                                 if isFriendlyGym and pk.cp > max_CP:
@@ -330,7 +332,8 @@ Select Command:
                                 score = round(score * 1000)/1000
                                 entry = {
                                     'pk': pk,
-                                    'score': score
+                                    'result': result,
+                                    'score': score,
                                 }
                                 counters.append(entry)
 
@@ -363,7 +366,11 @@ Select Command:
                                     color = bcolors.Orange
                                 elif pk.cp > int(pkmn.cp*0.5):
                                     color = bcolors.Gold
-                            print(color+"  "+str(score)+" -- "+pk.name+" ("+pk.species+")  "+str(pk.cp)+"cp  "+str(pk.hp)+"hp  "+pk.move_one+"/"+pk.move_two+bcolors.Clear)
+                            weave = "Weave"
+                            if ct['result']['atk_noweave_dmg'] > ct['result']['atk_weave_dmg']:
+                                weave = "No-Weave"
+
+                            print(color+"  "+str(score)+" -- "+pk.name+" ("+pk.species+")  "+str(pk.cp)+"cp  "+str(pk.hp)+"hp  "+pk.move_one+"/"+pk.move_two+" ("+weave+")"+bcolors.Clear)
                         print("\n\n")
 
 
@@ -406,9 +413,9 @@ Select Command:
                 currentFilter += "strong" # TODO Implement
             elif cmd == "f<": # Filter by Species
                 currentFilter += "weak" # TODO Implement
-            elif cmd == "m+": # Filter by Species
+            elif cmd == "fm+": # Filter by Species
                 currentFilter += "marked"
-            elif cmd == "m-": # Filter by Species
+            elif cmd == "fm-": # Filter by Species
                 currentFilter += "nonmarked"
 
             # Sorts
@@ -416,6 +423,10 @@ Select Command:
                 currentFilter += "sortName"
             elif cmd == "sc": # Sort by CP
                 currentFilter += "sortCP"
+            elif cmd == "si-": # Sort by Min IVs
+                currentFilter += "sortMinIV"
+            elif cmd == "si+": # Sort by Max IVs
+                currentFilter += "sortMaxIV"
 
             else:
                 print("Filter Command \'"+cmd+"\' not recognized")
@@ -567,7 +578,7 @@ Mark Pokemon:
                 bestScore = [-1, -1, -1, -1]
                 for idx in range(len(pkmnList)):
                     attacker = pkmnList[idx]
-                    score = PK.Pokemon.calculate_gym_attack_score_for_combatants(attacker, defender)
+                    score = PK.Pokemon.calculate_gym_attack_score_for_combatants(attacker, defender)['gym_score']
                     # Tier 0 - Half CP or less
                     if attacker.cp <= int(defender.cp*0.5):
                         if score > bestScore[0]:
@@ -604,11 +615,6 @@ Mark Pokemon:
                         bestAttackers[3].append(idx)
                         bestScore[3] = score
 
-                # # Mark the top-scorers
-                # for tier in range(4):
-                #     for pkmn in bestAttackers[tier]:
-                #         pkmn.marked = True
-                #         # print("  ["+str(tier)+"] "+pkmn.name+" ("+pkmn.species+") "+str(pkmn.cp)+"cp with a score of "+str(bestScore[tier]))
                 self.attackers.put(bestAttackers)
                 self.scores.put(bestScore)
                 self.ready.put(True)
@@ -784,6 +790,10 @@ def apply_active_filters():
             apply_ad_sort(params, sortFunc=lambda pk: pk.name)
         elif params[0] == "sortCP": # CP Sort
             apply_ad_sort(params, sortFunc=lambda pk: pk.cp)
+        elif params[0] == "sortMinIV": # Min IV Sort
+            apply_ad_sort(params, sortFunc=lambda pk: pk.minIV)
+        elif params[0] == "sortMaxIV": # Max IV Sort
+            apply_ad_sort(params, sortFunc=lambda pk: pk.maxIV)
         else:
             print("Invalid filter configuration for \'"+flt+"\'")
             return
@@ -890,7 +900,7 @@ def read_pokemon_collection():
     pkmnList = fio.read_pokemon_from_file(PKMN_FILE)
 
     # __VALIDATE_POKEMON_MOVES() # Validate Pokemon move sets.  Run this when 
-    # PK.Pokemon.calculate_gym_attack_score_for_combatants(pkmnList[342],pkmnList[356])
+    # PK.Pokemon.calculate_gym_attack_score_for_combatants(pkmnList[342],pkmnList[356])['gym_score']
 
     # pkmn = PK.Pokemon()
     # # ----- SNORLAX -----
@@ -917,7 +927,7 @@ def read_pokemon_collection():
     # # Snorlax == 611
     # run_edit_pokemon(pkmn)
     # for pk in pkmnList:
-    #     print(pk.name+" ("+pk.species+")\t"+str(PK.Pokemon.calculate_gym_attack_score_for_combatants(pk,pkmn)))
+    #     print(pk.name+" ("+pk.species+")\t"+str(PK.Pokemon.calculate_gym_attack_score_for_combatants(pk,pkmn)['gym_score']))
     # generate_all_pokemon()
 
 def write_pokemon_collection():

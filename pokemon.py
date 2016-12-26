@@ -272,6 +272,23 @@ class Pokemon:
 
     @staticmethod
     def calculate_gym_attack_score_for_combatants(attacker, defender):
+        score_payload = {
+            'attacker': attacker,
+            'defender': defender,
+            'atk_m1_power': 0,
+            'atk_m2_power': 0,
+            'atk_noweave_dmg': 0,
+            'atk_weave_dmg': 0,
+            'atk_tankiness': 0,
+            'def_m1_power': 0,
+            'def_m2_power': 0,
+            'def_dmg': 0,
+            'def_tankiness': 0,
+            'atk_score': 0,
+            'def_score': 0,
+            'gym_score': 0,
+        }
+
         # Check attacks
         if defender.move_one == "" or defender.move_two == "":
             # One or both of the moves is missing, so iterate over all of the moves 
@@ -288,20 +305,17 @@ class Pokemon:
                 cm = [m2]
 
             # Iterate over all of the possible move combinations, and return the worst-case scenario
-            worstCase = 1000
+            worstCase = { 'gym_score': 1000 }
             for testMove1 in bm:
                 for testMove2 in cm:
                     defender.move_one = testMove1
                     defender.move_two = testMove2
-                    # print(defender.move_one)
-                    # print(defender.move_two)
                     result = Pokemon.calculate_gym_attack_score_for_combatants(attacker, defender)
-                    if result < worstCase:
+                    if result['gym_score'] < worstCase['gym_score']:
                         worstCase = result
 
             defender.move_one = m1
             defender.move_two = m2
-            # print(worstCase)
             return worstCase
 
 
@@ -312,14 +326,14 @@ class Pokemon:
         
         # Attacker's Tankiness
         atkTankiness = attacker.hp
-        # print(atkTankiness)
+        score_payload['atk_tankiness'] = atkTankiness
 
         # Defenders's Tankiness
         if defender.hp != -1:
             defTankiness = 2 * defender.hp
         else:
             defTankiness = 2 * max(int(math.sqrt(Pokemon._fLvl(defender.get_level())) * (defSpeciesData.HP + defIVs[2])), 10)
-        # print(defTankiness)
+        score_payload['def_tankiness'] = defTankiness
 
 
         critDamageBonusConstant = 0.0
@@ -331,28 +345,25 @@ class Pokemon:
         mv1STAB = 1.25 if mv1Type == atkSpeciesData.Type1 or mv1Type == atkSpeciesData.Type2 else 1.0
         mv1PowerScaled = 1 + math.floor(
             0.5 * 
-            ((atkSpeciesData.Attack+atkIVs[0])/(defSpeciesData.Defense+defIVs[1])) * # Attack/Defense
-            (Pokemon._fLvl(attacker.get_level())/Pokemon._fLvl(defender.get_level())) * # CPM
+            ((atkSpeciesData.Attack+atkIVs[0])*1.0/(defSpeciesData.Defense+defIVs[1])) * # Attack/Defense
+            (Pokemon._fLvl(attacker.get_level())*1.0/Pokemon._fLvl(defender.get_level())) * # CPM
             mv1STAB *
             (get_ratio_from_types(mv1Type, defSpeciesData.Type1)*get_ratio_from_types(mv1Type, defSpeciesData.Type2)) * # Type
             mv1Data[Moves.BASIC_MOVE.PW]
             )
         mv1Speed = mv1Data[Moves.BASIC_MOVE.Duration]
         mv1NrgGain = mv1Data[Moves.BASIC_MOVE.NRG]
-        # print("Power1:"+str(mv1PowerScaled))
-
         mv2Data = Moves._get_charge_move_by_name(attacker.move_two)
         mv2Type = mv2Data[Moves.CHARGE_MOVE.Type]
         mv2STAB = 1.25 if mv2Type == atkSpeciesData.Type1 or mv2Type == atkSpeciesData.Type2 else 1.0
         mv2PowerScaled = 1 + math.floor(
             0.5 * 
-            ((atkSpeciesData.Attack+atkIVs[0])/(defSpeciesData.Defense+defIVs[1])) * # Attack/Defense
-            (Pokemon._fLvl(attacker.get_level())/Pokemon._fLvl(defender.get_level())) * # CPM
+            ((atkSpeciesData.Attack+atkIVs[0])*1.0/(defSpeciesData.Defense+defIVs[1])) * # Attack/Defense
+            (Pokemon._fLvl(attacker.get_level())*1.0/Pokemon._fLvl(defender.get_level())) * # CPM
             mv2STAB *
             (get_ratio_from_types(mv2Type, defSpeciesData.Type1)*get_ratio_from_types(mv2Type, defSpeciesData.Type2)) * # Type
             mv2Data[Moves.BASIC_MOVE.PW]
             )
-        # print("Power2:"+str(mv2PowerScaled))
         mv2Speed = mv2Data[Moves.CHARGE_MOVE.Duration]
         mv2NrgCost = mv2Data[Moves.CHARGE_MOVE.NRG]
         mv2CritChance = mv2Data[Moves.CHARGE_MOVE.Crit]
@@ -362,7 +373,18 @@ class Pokemon:
         flWeaveTime = math.floor(100000/weaveCycleLengthTime)
         weaveDmg = flWeaveTime*(mv2PowerScaled*(mv2STAB)*(1+(critDamageBonusConstant*mv2CritChance/100)))+math.ceil(flWeaveTime*nrgRatio)*(mv1PowerScaled)+math.floor((100000-(flWeaveTime*(mv2Speed+chargeDelayConstant)+math.ceil(flWeaveTime*nrgRatio)*mv1Speed))/mv1Speed)*(mv1PowerScaled)
         atkDmg = max(noWeaveDmg,weaveDmg)
-        # print(atkDmg)
+        # print("M1")
+        # print("  PWS: "+str(mv1PowerScaled))
+        # print("  ADScale: "+str(((atkSpeciesData.Attack+atkIVs[0])*1.0/(defSpeciesData.Defense+defIVs[1]))))
+        # print("  CPM: "+str((Pokemon._fLvl(attacker.get_level())/Pokemon._fLvl(defender.get_level()))))
+        # print("  STAB: "+str(mv1STAB))
+        # print("  Type: "+str((get_ratio_from_types(mv1Type, defSpeciesData.Type1)*get_ratio_from_types(mv1Type, defSpeciesData.Type2))))
+        # print("  Base: "+str(mv1Data[Moves.BASIC_MOVE.PW]))
+        score_payload['atk_m1_power'] = mv1PowerScaled
+        score_payload['atk_m2_power'] = mv2PowerScaled
+        score_payload['atk_noweave_dmg'] = noWeaveDmg
+        score_payload['atk_weave_dmg'] = weaveDmg
+
 
         # Defender's Damage
         mv1Data = Moves._get_basic_move_by_name(defender.move_one)
@@ -370,13 +392,12 @@ class Pokemon:
         mv1STAB = 1.25 if mv1Type == defSpeciesData.Type1 or mv1Type == defSpeciesData.Type2 else 1.0
         mv1PowerScaled = 1 + math.floor(
             0.5 * 
-            ((defSpeciesData.Attack+defIVs[0])/(atkSpeciesData.Defense+atkIVs[1])) * # Attack/Defense
-            (Pokemon._fLvl(defender.get_level())/Pokemon._fLvl(attacker.get_level())) * # CPM
+            ((defSpeciesData.Attack+defIVs[0])*1.0/(atkSpeciesData.Defense+atkIVs[1])) * # Attack/Defense
+            (Pokemon._fLvl(defender.get_level())*1.0/Pokemon._fLvl(attacker.get_level())) * # CPM
             mv1STAB *
             (get_ratio_from_types(mv1Type, atkSpeciesData.Type1)*get_ratio_from_types(mv1Type, atkSpeciesData.Type2)) * # Type
             mv1Data[Moves.BASIC_MOVE.PW]
             )
-        # print("Power1:"+str(mv1PowerScaled))
         mv1Speed = mv1Data[Moves.BASIC_MOVE.Duration]
         mv1NrgGain = mv1Data[Moves.BASIC_MOVE.NRG]
         mv2Data = Moves._get_charge_move_by_name(defender.move_two)
@@ -385,30 +406,42 @@ class Pokemon:
         mv2PowerScaled = 1 + math.floor(
             0.5 * 
             ((defSpeciesData.Attack+defIVs[0])*1.0/(atkSpeciesData.Defense+atkIVs[1])) * # Attack/Defense
-            (Pokemon._fLvl(defender.get_level())/Pokemon._fLvl(attacker.get_level())) * # CPM
+            (Pokemon._fLvl(defender.get_level())*1.0/Pokemon._fLvl(attacker.get_level())) * # CPM
             mv2STAB *
             (get_ratio_from_types(mv2Type, atkSpeciesData.Type1)*get_ratio_from_types(mv2Type, atkSpeciesData.Type2)) * # Type
             mv2Data[Moves.BASIC_MOVE.PW]
             )
-        # print("Power2:"+str(mv2PowerScaled))
         mv2Speed = mv2Data[Moves.CHARGE_MOVE.Duration]
         mv2NrgCost = mv2Data[Moves.CHARGE_MOVE.NRG]
         mv2CritChance = mv2Data[Moves.CHARGE_MOVE.Crit]
-
         nrgRatio = math.ceil(mv2NrgCost/mv1NrgGain) if mv2NrgCost == 100 else (mv2NrgCost/mv1NrgGain)
         gymWeaveCycleLengthValue = math.floor(100000/(nrgRatio*(mv1Speed+2000)+(mv2Speed+chargeDelayConstant)))
         defDmg = gymWeaveCycleLengthValue*(mv2PowerScaled*(1+(critDamageBonusConstant*mv2CritChance/100)))+math.ceil(gymWeaveCycleLengthValue*nrgRatio)*mv1PowerScaled+math.floor((100000-(gymWeaveCycleLengthValue*(mv2Speed+chargeDelayConstant)+math.ceil(gymWeaveCycleLengthValue*nrgRatio)*(mv1Speed+2000)))/(mv1Speed+2000))*mv1PowerScaled
-        # print(defDmg)
+        score_payload['def_m1_power'] = mv1PowerScaled
+        score_payload['def_m2_power'] = mv2PowerScaled
+        score_payload['def_dmg'] = defDmg
 
 
         # Calculate the scores
         atkScore = defTankiness/atkDmg
-        # print(atkScore)
         defScore = atkTankiness/defDmg
-        # print(defScore)
         score = defScore/atkScore
-        # print(score)
-        return score
+        score_payload['atk_score'] = atkScore
+        score_payload['def_score'] = defScore
+        score_payload['gym_score'] = score
+
+        # print(
+        #     "Atk: CP "+str(attacker.cp)+" "+attacker.name+" ("+attacker.species+")("+attacker.move_one+"/"+attacker.move_two+")  "+
+        #     "vs  "+
+        #     "Def: CP "+str(defender.cp)+" "+defender.species+" ("+defender.move_one+"/"+defender.move_two+")  "+
+        #     " || "+
+        #     "Atk_dmg: "+str(score_payload['atk_noweave_dmg'])+"/"+str(score_payload['atk_weave_dmg'])+"   "+
+        #     "Atk_tankiness: "+str(score_payload['atk_tankiness'])+"   "+
+        #     " || "+
+        #     "Def_dmg: "+str(score_payload['def_dmg'])+"   "+
+        #     "Def_tankiness: "+str(score_payload['def_tankiness'])+"   "+
+        #     "")
+        return score_payload
 
 
     def calculate_tankiness_score_for_types(self, type1, type2):
