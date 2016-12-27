@@ -35,8 +35,8 @@ Select Filter or Sort:
     [sn]  Name
     [ss]  Species #Imp
     [sc]  CP
-    [si+] Min IVs #Imp
     [si+] Max IVs #Imp
+    [si-] Min IVs #Imp
 > """
 gym_builder_interface = """
 Gym Builder:
@@ -55,129 +55,117 @@ filteredList = pkmnList
 currentFilter = ""
 savedViews = []
 
-
+should_show = {
+    'Idx':      [True,  4],
+    'Nickname': [True, 12],
+    'Species':  [True, 12],
+    'CP':       [True,  4],
+    'IVs':      [True,  5, 5, 6],
+    'Move1':    [False, 22],
+    'Move2':    [False, 22],
+    'Mark':     [True,  5],
+    'Skin':     [True, 12],
+}
 def list_pokemon():
+
+    def pad_left(inp, length):
+        ret = inp
+        if len(ret) < length:
+            ret = " "*(length-len(ret))+ret
+        return ret
+
+    def pad_right(inp, length):
+        ret = inp
+        if len(ret) < length:
+            ret = ret+" "*(length-len(ret))
+        return ret
+
+    def pad_center(inp, length):
+        ret = inp
+        while length - len(ret) >= 2:
+            ret = " "+ret+" "
+        while length - len(ret) >= 1:
+            ret = ret+" "
+        return ret
+
     apply_active_filters()
-    print("Idx  | Nickname     | Species      | CP   | IV Score Range       | Basic Move             | Charge Move            | Mark  |")
-    print("-----:--------------:--------------:------:----------------------:------------------------:------------------------:-------:")
+    title_string = ""
+    divider_string = ""
+    if should_show['Idx'][0]:
+        title_string += pad_center('Idx', should_show['Idx'][1])+" | "
+        divider_string += "-"*should_show['Idx'][1]+"-:-"
+    if should_show['Nickname'][0]:
+        title_string += pad_center('Nickname', should_show['Nickname'][1])+" | "
+        divider_string += "-"*should_show['Nickname'][1]+"-:-"
+    if should_show['Species'][0]:
+        title_string += pad_center('Species', should_show['Species'][1])+" | "
+        divider_string += "-"*should_show['Species'][1]+"-:-"
+    if should_show['CP'][0]:
+        title_string += pad_center('CP', should_show['CP'][1])+" | "
+        divider_string += "-"*should_show['CP'][1]+"-:-"
+    if should_show['IVs'][0]:
+        title_string += pad_center('IVs', should_show['IVs'][1]+should_show['IVs'][2]+should_show['IVs'][3]+4)+" | "
+        divider_string += "-"*(should_show['IVs'][1]+should_show['IVs'][2]+should_show['IVs'][3]+4)+"-:-"
+    if should_show['Move1'][0]:
+        title_string += pad_center('Basic Move', should_show['Move1'][1])+" | "
+        divider_string += "-"*should_show['Move1'][1]+"-:-"
+    if should_show['Move2'][0]:
+        title_string += pad_center('Charge Move', should_show['Move2'][1])+" | "
+        divider_string += "-"*should_show['Move2'][1]+"-:-"
+    if should_show['Mark'][0]:
+        title_string += pad_center('Mark', should_show['Mark'][1])+" | "
+        divider_string += "-"*should_show['Mark'][1]+"-:-"
+    if should_show['Skin'][0]:
+        title_string += pad_center('Skin', should_show['Skin'][1])+" | "
+        divider_string += "-"*should_show['Skin'][1]+"-:-"
+    print(title_string)
+    print(divider_string)
     # TODO List IVs?
     for idx, pkmn in enumerate(filteredList):
         # Idx  | Nickname     | Species      | CP
         printString = ""
 
         # Print Index
-        item = str(idx)
-        if len(item) < 4:
-            item = " "*(4-len(item))+item
-        printString += item+" | "
+        if should_show['Idx'][0]:
+            printString += pad_left(str(idx), should_show['Idx'][1])+" | "
 
         # Print Nickname
-        item = str(pkmn.name)
-        if len(item) < 12:
-            item = item+" "*(12-len(item))
-        printString += item+" | "
+        if should_show['Nickname'][0]:
+            printString += pad_right(pkmn.name, should_show['Nickname'][1])+" | "
 
         # Print Species
-        item = str(pkmn.species)
-        if len(item) < 12:
-            item = item+" "*(12-len(item))
-        printString += item+" | "
+        if should_show['Species'][0]:
+            printString += pad_right(pkmn.species, should_show['Species'][1])+" | "
 
         # Print CP
-        item = str(pkmn.cp)
-        if len(item) < 4:
-            item = " "*(4-len(item))+item
-        printString += item+" | "
-
+        if should_show['CP'][0]:
+            printString += pad_left(str(pkmn.cp), should_show['CP'][1])+" | "
 
         # Print IVs
-        item = str(int(pkmn.minIV/0.045)/10.0)
-        if len(item) < 5:
-            item = " "*(5-len(item))+item
-        printString += item
-
-        if len(pkmn.IVOptions) != 1:
-            item = str(int(pkmn.maxIV/0.045)/10.0)
-            if len(item) < 5:
-                item = " "*(5-len(item))+item
-            printString += " - "+item
-
-            item = "("+str(len(pkmn.IVOptions))+")"            
-            if len(item) < 6:
-                item = " "*(6-len(item))+item
-            printString += " "+item
-        else:
-            printString += (" "*15)
-        printString += " | "
+        if should_show['IVs'][0]:
+            item1 = pad_left(str(int(pkmn.minIV/0.045)/10.0), should_show['IVs'][1])
+            item2 = "   "+pad_left("", should_show['IVs'][2])
+            item3 = " "+pad_left("", should_show['IVs'][3])
+            if len(pkmn.IVOptions) != 1:
+                item2 = " - "+pad_left(str(int(pkmn.maxIV/0.045)/10.0), should_show['IVs'][2])
+                item3 = " "+pad_left("("+str(len(pkmn.IVOptions))+")", should_show['IVs'][3])
+            printString += item1+item2+item3+" | "
 
         # Print Basic Move
-        item = str(pkmn.move_one)
-        if len(item) < 22:
-            item = " "*(22-len(item))+item
-        printString += item+" | "
+        if should_show['Move1'][0]:
+            printString += pad_left(pkmn.move_one, should_show['Move1'][1])+" | "
 
         # Print Charge Move
-        item = str(pkmn.move_two)
-        if len(item) < 22:
-            item = " "*(22-len(item))+item
-        printString += item+" | "
+        if should_show['Move2'][0]:
+            printString += pad_left(pkmn.move_one, should_show['Move2'][1])+" | "
 
         # Print Mark
-        item = str(pkmn.marked)
-        if len(item) < 5:
-            item = " "*(5-len(item))+item
-        printString += item+" | "
+        if should_show['Mark'][0]:
+            printString += pad_left(str(pkmn.marked), should_show['Mark'][1])+" | "
 
-        # Calculate Duel Score(s)
-        # minScore = 100
-        # keep = False
-        # item = str(int(pkmn.calculate_duel_score_for_types("","")))
-        # if len(item) < 4:
-        #     item = " "*(4-len(item))+item
-        # printString += item+" | "
-        # # #1
-        # score = int(pkmn.calculate_duel_score_for_types("Water",""))
-        # if score > minScore:
-        #     keep = True
-        # item = str(score)
-        # if len(item) < 4:
-        #     item = " "*(4-len(item))+item
-        # printString += item+" | "
-        # # #2
-        # score = int(pkmn.calculate_duel_score_for_types("Ground","Rock"))
-        # if score > minScore:
-        #     keep = True
-        # item = str(score)
-        # if len(item) < 4:
-        #     item = " "*(4-len(item))+item
-        # printString += item+" | "
-        # # #3
-        # score = int(pkmn.calculate_duel_score_for_types("Water","Ice"))
-        # if score > minScore:
-        #     keep = True
-        # item = str(score)
-        # if len(item) < 4:
-        #     item = " "*(4-len(item))+item
-        # printString += item+" | "
-        # # #4
-        # score = int(pkmn.calculate_duel_score_for_types("Dragon","Flying"))
-        # if score > minScore:
-        #     keep = True
-        # item = str(score)
-        # if len(item) < 4:
-        #     item = " "*(4-len(item))+item
-        # printString += item+" | "
-        # # #5
-        # score = int(pkmn.calculate_duel_score_for_types("Fire",""))
-        # if score > minScore:
-        #     keep = True
-        # item = str(score)
-        # if len(item) < 4:
-        #     item = " "*(4-len(item))+item
-        # printString += item+" | "
-        # if not keep:
-        #     continue
-
+        # Print Mark
+        if should_show['Skin'][0]:
+            printString += pad_left(str(pkmn.skin), should_show['Skin'][1])+" | "
 
         print(printString)    
 
@@ -242,7 +230,7 @@ Select Command:
             clear_screen()
             run_edit_pokemon(pkmn)
             print("\n")
-            pkmn.calculate_iv_options()
+            pkmn.calculate_iv_options(False)
             write_pokemon_collection()
             print("Updated "+pkmn.species)
 
@@ -453,6 +441,7 @@ Select Command:
 def run_mark_pokemon():
     mark_pokemon_interface = """
 Mark Pokemon:
+  [l]  List of Pokemon by Index
   [t]  Highest CP per Species
   [n]  Pokemon with given name
   [s]  Pokemon of a particular species
@@ -490,6 +479,12 @@ Mark Pokemon:
                 loop_species = pkmn.species
             else:
                 mark_pokemon(pkmn,False)
+
+    elif cmd == "l":
+        list_pokemon()
+        filteredIdxList = UInp.input_pkmn_list_index_list(len(filteredList))
+        for idx in filteredIdxList:
+            mark_pokemon(filteredList[idx],True)
 
     elif cmd == "n":
         inp_name = UInp.get_input("Name?\n>  ")
@@ -699,6 +694,11 @@ def run_edit_pokemon(pkmn):
     [m1] Edit Quick Move
     [m2] Edit Charge Move
     [a]  Edit Appraisal
+    [k]  Change Skin
+
+    [ia] Calculate IVs
+    [ic] Clear IVs
+
     [x]  Exit
 > """
     while True:
@@ -730,6 +730,14 @@ def run_edit_pokemon(pkmn):
             pkmn.move_one = UInp.input_quick_move()
         elif cmd == "m2":
             pkmn.move_two = UInp.input_charge_move()
+        elif cmd == "k":
+            pkmn.skin = UInp.get_input("Pokemon Skin?\n>  ")
+        elif cmd == "ia":
+            print("\n")
+            pkmn.calculate_iv_options()
+            print("\n")
+        elif cmd == "ic":
+            pkmn.IVOptions = []
         elif cmd == "a":
             pkmn.appraisal = UInp.input_appraisal()
             pkmn.bestStat = UInp.input_bestStat()

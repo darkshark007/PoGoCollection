@@ -15,6 +15,7 @@ class Pokemon:
         self.appraisal = -1
         self.bestStat = -1
         self.statLevel = -1
+        self.skin = ""
 
         # Calculated Properties
         self.IVOptions = []

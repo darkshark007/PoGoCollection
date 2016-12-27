@@ -15,7 +15,7 @@ def read_pokemon_from_file(filename):
 
         # ---------- Output format ----------
         # Name, Species, CP, HP, Dust, Mv1, Mv2, Appraisal, BestStat, StatLevel, IVOpts, Strengths, Weaknesses
-        split = line.split(",")
+        split = line.strip().split(",")
         pkmn = PK.Pokemon()
         pkmn.name = split[0]
         pkmn.species = split[1]
@@ -33,8 +33,8 @@ def read_pokemon_from_file(filename):
             pkmn.IVOptions = split[10].split(":")
         pkmn.minIV = int(split[11])
         pkmn.maxIV = int(split[12])
-        pkmn.strengths = split[13].split(":")
-        pkmn.weaknesses = split[14].split(":")
+        pkmn.skin = split[13]
+
         # pkmn.calculate_iv_options() # Re-calculate IVs on read
         pkList.append(pkmn)
     file_in.close()
@@ -63,8 +63,7 @@ def write_pokemon_to_file(pkList, filename):
         serial += (":".join(pkmn.IVOptions)).strip() + ","
         serial += str(pkmn.minIV) + ","
         serial += str(pkmn.maxIV) + ","
-        serial += (":".join(pkmn.strengths)).strip() + ","
-        serial += (":".join(pkmn.weaknesses)).strip()
+        serial += pkmn.skin
         serial = serial.strip()
         file_out.write(serial+"\n")
     file_out.close()
