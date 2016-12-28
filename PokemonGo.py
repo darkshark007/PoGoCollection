@@ -163,9 +163,9 @@ def list_pokemon():
         if should_show['Mark'][0]:
             printString += pad_left(str(pkmn.marked), should_show['Mark'][1])+" | "
 
-        # Print Mark
+        # Print Skin
         if should_show['Skin'][0]:
-            printString += pad_left(str(pkmn.skin), should_show['Skin'][1])+" | "
+            printString += pad_right(str(pkmn.skin), should_show['Skin'][1])+" | "
 
         print(printString)    
 
@@ -441,10 +441,12 @@ Select Command:
 def run_mark_pokemon():
     mark_pokemon_interface = """
 Mark Pokemon:
-  [l]  List of Pokemon by Index
-  [t]  Highest CP per Species
+  [i]  List of Pokemon by Index
+  [k]  Pokemon with Skins
+  [l]  Pokemon at a specific level
   [n]  Pokemon with given name
   [s]  Pokemon of a particular species
+  [t]  Highest CP per Species
   [in] N Highest IV's per Species
   [em] Max Evolved Pokemon
   [gc] Top-Scoring Gym Combatants
@@ -480,11 +482,26 @@ Mark Pokemon:
             else:
                 mark_pokemon(pkmn,False)
 
-    elif cmd == "l":
+    elif cmd == "i":
         list_pokemon()
         filteredIdxList = UInp.input_pkmn_list_index_list(len(filteredList))
         for idx in filteredIdxList:
             mark_pokemon(filteredList[idx],True)
+
+    elif cmd == "l":
+        lvl = UInp.input_float("Level?\n>  ",1, 40.5)
+        for pkmn in pkmnList:
+            if lvl == pkmn.get_level():
+                mark_pokemon(pkmn,True)
+            else:
+                mark_pokemon(pkmn,False)
+
+    elif cmd == "k":
+        for pkmn in pkmnList:
+            if pkmn.skin != "":
+                mark_pokemon(pkmn,True)
+            else:
+                mark_pokemon(pkmn,False)
 
     elif cmd == "n":
         inp_name = UInp.get_input("Name?\n>  ")
@@ -628,10 +645,17 @@ Mark Pokemon:
 
             # Print results so far
             printString = ""
+            # print('Waiting')
             while results[print_index] != None and results[print_index].ready.full() == True:
+                # print('Processing')
                 res = results[print_index]
                 defender = res.defender
                 printString += "["+str(print_index)+"] Battling "+defender.species+" "+str(defender.cp)+"cp ("+defender.move_one+"/"+defender.move_two+")\n"
+                if not res.attackers.full():
+                    # Skip
+                    results[print_index] = None
+                    print_index += 1
+                    continue
                 ls = res.attackers.get()
                 scores = res.scores.get()
                 for tier in range(4):
@@ -658,10 +682,15 @@ Mark Pokemon:
                 worker.defender = fullList[thread_index]
                 worker.index = thread_index
                 results[thread_index] = worker
-                worker.start()
-                # print("Loop F:"+str(results[thread_index]))
-                threads_available -= 1
                 thread_index += 1
+                if worker.defender.cp < 1000:
+                    # print('Skipping')
+                    worker.ready.put(True)
+                else:
+                    # print('Starting')
+                    threads_available -= 1
+                    worker.start()
+                # print("Loop F:"+str(results[thread_index]))
             # print(results[print_index].results['ready'])
 
             # If we've completed, then break
