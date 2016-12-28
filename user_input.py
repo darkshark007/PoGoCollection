@@ -185,6 +185,7 @@ def input_charge_move():
     print("\n")
     return input_charge_move()
 
+
 def input_appraisal():
     inp = get_input(\
 """
@@ -228,6 +229,7 @@ Highest Stat?
     except ValueError:
         print("Invalid number value \'"+inp+"\'")
         return input_bestStat()    
+
 
 def input_stat_level():
     inp = get_input(\
@@ -274,15 +276,33 @@ def input_pkmn_list_index(max_value):
 
 
 def input_pkmn_list_index_list(max_value):
-    inp = get_input("Comma-separated Idx List?\n>  ")
+    inp = get_input("Comma-separated Idx/Range List?\n>  ")
     inp = inp.split(",")
+    values = []
     try:
         for i in range(len(inp)):
+            # Check for range
+            spl = inp[i].strip().split("-")
+            if len(spl) == 2:
+                start = int(spl[0].strip())
+                end = int(spl[1].strip())
+                if start > end:
+                    # Swap
+                    temp = start
+                    start = end
+                    end = temp
+                while start <= end:
+                    values.append(start)
+                    start += 1
+                continue
+
+            # Check for single value
             inp[i] = int(inp[i].strip())
             if inp[i] >= max_value or inp[i] < -1:
                 print("Index value \'"+str(inp[i])+"\' is not valid! (Should be between 0-"+str(max_value-1)+", or -1 to cancel)")
                 return input_pkmn_list_index_list(max_value)
-        return inp
+            values.append(inp[i])
+        return values
     except ValueError:
         print("Invalid number value \'"+inp+"\'")
         return input_pkmn_list_index_list(max_value)    
