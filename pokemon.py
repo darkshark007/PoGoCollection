@@ -25,6 +25,29 @@ class Pokemon:
         self.weaknesses = []
         self.marked = False
 
+    def clone(self):
+        pk = Pokemon()
+        pk.name = self.name
+        pk.species = self.species
+        pk.cp = self.cp
+        pk.hp = self.hp
+        pk.dust = self.dust
+        pk.move_one = self.move_one
+        pk.move_two = self.move_two
+        pk.appraisal = self.appraisal
+        pk.bestStat = self.bestStat
+        pk.statLevel = self.statLevel
+        pk.skin = self.skin
+
+        # Calculated Properties
+        pk.IVOptions = [s for s in self.IVOptions]
+        pk.minIV = self.minIV
+        pk.maxIV = self.maxIV
+        pk.strengths = self.strengths
+        pk.weaknesses = self.weaknesses
+        pk.marked = self.marked
+        return pk
+
 
     def calculate_iv_options(self, shouldPrint=True):
         options = []

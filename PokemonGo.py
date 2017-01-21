@@ -61,10 +61,10 @@ should_show = {
     'Species':  [True, 12],
     'CP':       [True,  4],
     'IVs':      [True,  5, 5, 6],
-    'Move1':    [False, 22],
-    'Move2':    [False, 22],
+    'Move1':    [True, 22],
+    'Move2':    [True, 22],
     'Mark':     [True,  5],
-    'Skin':     [True, 12],
+    'Skin':     [False, 12],
 }
 def list_pokemon():
 
@@ -157,7 +157,7 @@ def list_pokemon():
 
         # Print Charge Move
         if should_show['Move2'][0]:
-            printString += pad_left(pkmn.move_one, should_show['Move2'][1])+" | "
+            printString += pad_left(pkmn.move_two, should_show['Move2'][1])+" | "
 
         # Print Mark
         if should_show['Mark'][0]:
@@ -440,14 +440,15 @@ Select Command:
 
 def run_mark_pokemon():
     mark_pokemon_interface = """
-Mark Pokemon:
-  [i]  List of Pokemon by Index
+Mark:
+  [i]  List of Pokemon from filtered list by Index
   [k]  Pokemon with Skins
   [l]  Pokemon at a specific level
   [n]  Pokemon with given name
   [s]  Pokemon of a particular species
-  [t]  Highest CP per Species
-  [in] N Highest IV's per Species
+  [cp] N Highest CP Pokemon
+  [in] N Highest IV's per Species and/or Moveset
+  [iv] Pokemon at or above a specific IV, in points [0-45]
   [em] Max Evolved Pokemon
   [gc] Top-Scoring Gym Combatants
 
@@ -458,31 +459,45 @@ Mark Pokemon:
 
     # Allow all mark commands to be negatable
     negate = False
-    if cmd[0] == "!":
+    flip = False
+    mark_list = pkmnList
+    if '!' in cmd:
         negate = True
-        cmd = cmd[1:]
+        cmd = cmd.replace('!', '')
+    if '^' in cmd:
+        flip = True
+        cmd = cmd.replace('^', '')
+    if '%' in cmd:
+        mark_list = filteredList
+        cmd = cmd.replace('%', '')
+
+    pkList = []
+    for pkmn in mark_list:
+        pkList.append(pkmn)
+
 
     def mark_pokemon(pkmn, result):
-        if result is True and negate is False:
-            pkmn.marked = True
-        if result is True and negate is True:
-            return # Dont mark false
-        if result is False and negate is True:
-            pkmn.marked = True
-        if result is False and negate is False:
-            return # Dont mark false
+        # print("Marking "+pkmn.name+" ("+pkmn.species+") "+str(pkmn.cp)+"cp == "+str(result))
+        if flip:
+            if result is True and negate is False:
+                pkmn.marked = False
+            if result is True and negate is True:
+                return # Dont mark false
+            if result is False and negate is True:
+                pkmn.marked = False
+            if result is False and negate is False:
+                return # Dont mark false
+        else:
+            if result is True and negate is False:
+                pkmn.marked = True
+            if result is True and negate is True:
+                return # Dont mark false
+            if result is False and negate is True:
+                pkmn.marked = True
+            if result is False and negate is False:
+                return # Dont mark false
 
-    if cmd == "t":
-        loop_species = "NONE"
-        # pkmnList is assumed to be always sorted by CP, which it should be.
-        for pkmn in pkmnList:
-            if pkmn.species != loop_species:
-                mark_pokemon(pkmn,True)
-                loop_species = pkmn.species
-            else:
-                mark_pokemon(pkmn,False)
-
-    elif cmd == "i":
+    if cmd == "i":
         list_pokemon()
         filteredIdxList = UInp.input_pkmn_list_index_list(len(filteredList))
         for idx in filteredIdxList:
@@ -490,14 +505,14 @@ Mark Pokemon:
 
     elif cmd == "l":
         lvl = UInp.input_float("Level?\n>  ",1, 40.5)
-        for pkmn in pkmnList:
+        for pkmn in pkList:
             if lvl == pkmn.get_level():
                 mark_pokemon(pkmn,True)
             else:
                 mark_pokemon(pkmn,False)
 
     elif cmd == "k":
-        for pkmn in pkmnList:
+        for pkmn in pkList:
             if pkmn.skin != "":
                 mark_pokemon(pkmn,True)
             else:
@@ -505,7 +520,7 @@ Mark Pokemon:
 
     elif cmd == "n":
         inp_name = UInp.get_input("Name?\n>  ")
-        for pkmn in pkmnList:
+        for pkmn in pkList:
             if pkmn.name == inp_name:
                 mark_pokemon(pkmn, True)
             else:
@@ -513,7 +528,7 @@ Mark Pokemon:
 
     elif cmd == "s":
         inp_species = UInp.input_species()
-        for pkmn in pkmnList:
+        for pkmn in pkList:
             if pkmn.species == inp_species:
                 mark_pokemon(pkmn, True)
             else:
@@ -521,52 +536,92 @@ Mark Pokemon:
 
     elif cmd == "in":
         inp_N = UInp.input_number("N?\n> ")
+        # TODO Remove Skip Marked pokemon, implement with filter
         inp_skip = UInp.input_tf("Skip currently marked pokemon?\n>  ")
+        inp_moveset = UInp.input_tf("Per moveset?\n>  ")
         # Construct the IV list
-        iv_list = []
-        iv_list.append([]) # Skip 0
-        for species in Species.RAW_SPECIES_DATA:
-            iv_list.append([])
+        pk_sets = {}
 
-        # Loop and collect the N highest IV values
-        for pkmn in pkmnList:
+        # Loop and break the list into sets
+        for pkmn in pkList:
             if inp_skip and pkmn.marked:
                 continue
-            pkid = Species.get_id_from_species(pkmn.species)
-            score = pkmn.minIV
-            if len(iv_list[pkid]) < inp_N:
-                iv_list[pkid].append(score)
+            key = str(Species.get_id_from_species(pkmn.species))
+            if inp_moveset:
+                key += "-"+pkmn.move_one+"-"+pkmn.move_two
+            try:
+                pk_sets[key].append(pkmn)
+            except KeyError:
+                pk_sets[key] = [pkmn]
+
+        # Iterate over the sets and mark the N highest IV ones
+        for key in pk_sets:
+            pk_set = pk_sets[key]
+            pk_set.sort(key=lambda pk: (pk.minIV), reverse=True)
+            if len(pk_set) >= inp_N:
+                score = pk_set[inp_N-1].minIV
             else:
-                # Find the lowest index
-                lowest_index = -1
-                lowest_val = 110
-                for i in range(inp_N):
-                    if iv_list[pkid][i] < lowest_val:
-                        lowest_index = i
-                        lowest_val = iv_list[pkid][i]
-                if score > lowest_val:
-                    iv_list[pkid][lowest_index] = score
+                score = pk_set[-1].minIV
 
-        # Loop over the IV values and pull out the lowest one
-        for pkid in range(len(iv_list)):
-            # Find the lowest index
-            lowest_index = -1
-            lowest_val = 110
-            for i in range(len(iv_list[pkid])):
-                if iv_list[pkid][i] < lowest_val:
-                    lowest_index = i
-                    lowest_val = iv_list[pkid][i]
-            iv_list[pkid] = lowest_val
+            for pkmn in pk_set:
+                if pkmn.maxIV >= score:
+                    mark_pokemon(pkmn, True)
+                else:
+                    mark_pokemon(pkmn, False)
 
-        # Loop and mark pkmn with highest IVs
-        for pkmn in pkmnList:
-            if pkmn.maxIV >= iv_list[Species.get_id_from_species(pkmn.species)]:
+    elif cmd == "iv":
+        inp_minIV = UInp.input_number("IV level, in points? [0-45]\n>  ", 0, 45)
+        for pkmn in pkList:
+            if pkmn.minIV >= inp_minIV:
                 mark_pokemon(pkmn, True)
             else:
                 mark_pokemon(pkmn, False)
 
+    elif cmd == "cp":
+        # OLD
+        # inp_N = UInp.input_number("N?\n>  ",1)
+        # # TODO: Refactor to be per species/per moveset
+        # # inp_species = UInp.input_tf("Per species?\n>  ")
+        # pkList.sort(key=lambda pk: (pk.cp), reverse=True)
+        # count = 0
+        # for pkmn in pkList:
+        #     if count < inp_N:
+        #         mark_pokemon(pkmn, True)
+        #     else:
+        #         mark_pokemon(pkmn, False)
+        #     count += 1
+        # List is assumed to be always sorted by CP, which it should be.
+        inp_N = UInp.input_number("N?\n>  ",1)
+        inp_species = UInp.input_tf("Per species?\n>  ")
+        inp_moveset = False
+        if inp_species:
+            inp_moveset = UInp.input_tf("Per moveset?\n>  ")
+        pkList.sort(key=lambda pk: (pk.cp), reverse=True)
+        if inp_species:
+            pkList.sort(key=lambda pk: (Species.get_id_from_species(pk.species)))
+        if inp_moveset:
+            pkList.sort(key=lambda pk: (pk.move_one))
+            pkList.sort(key=lambda pk: (pk.move_two))
+
+        key = "NONE"
+        count = 0
+        for pkmn in pkList:
+            curr_key = "K"
+            if inp_species:
+                curr_key += "-"+pkmn.species
+            if inp_moveset:
+                curr_key += "-"+pkmn.move_one+"/"+pkmn.move_two
+            if curr_key != key:
+                count = 0
+                key = curr_key
+            if count < inp_N:
+                mark_pokemon(pkmn, True)
+                count += 1
+            else:
+                mark_pokemon(pkmn, False)
+
     elif cmd == "em":
-        for pkmn in pkmnList:
+        for pkmn in pkList:
             species = Species.Species(pkmn.species)
             if species.Evolves_Into[0] == "":
                 mark_pokemon(pkmn, True)
@@ -584,12 +639,11 @@ Mark Pokemon:
                 self.ready = Queue(1)
 
             def run(self):
-                # global pkmnList
                 defender = self.defender
                 bestAttackers = [[],[],[],[]]
                 bestScore = [-1, -1, -1, -1]
-                for idx in range(len(pkmnList)):
-                    attacker = pkmnList[idx]
+                for idx in range(len(pkList)):
+                    attacker = pkList[idx]
                     score = PK.Pokemon.calculate_gym_attack_score_for_combatants(attacker, defender)['gym_score']
                     # Tier 0 - Half CP or less
                     if attacker.cp <= int(defender.cp*0.5):
@@ -661,7 +715,7 @@ Mark Pokemon:
                 for tier in range(4):
                     for pkIdx in ls[tier]:
                         # TODO: Can I refactor this so it supports negation?  Combine all the tiers into one list and iterate over pkmnList, comparing to the built list?
-                        pkmn = pkmnList[pkIdx]
+                        pkmn = pkList[pkIdx]
                         pkmn.marked = True
                         printString += "  ["+str(tier)+"] "+pkmn.name+" ("+pkmn.species+") "+str(pkmn.cp)+"cp with a score of "+str(scores[tier])+"\n"
 
@@ -707,9 +761,8 @@ Mark Pokemon:
         print("Total Time: "+str(tMin)+"m"+str(tSec)+"s")
 
 
-
     elif cmd == "x":
-        for pkmn in pkmnList:
+        for pkmn in pkList:
             pkmn.marked = False
 
 def run_edit_pokemon(pkmn):
@@ -728,10 +781,16 @@ def run_edit_pokemon(pkmn):
     [ia] Calculate IVs
     [ic] Clear IVs
 
+    [e]  Evolve Pokemon
+    [ep] Predict evolved Pokemon #IMP
+
     [x]  Exit
 > """
     while True:
-        print(pkmn.name+" ("+pkmn.species+")")
+        title_string = pkmn.name+" ("+pkmn.species+")"
+        if pkmn.skin != "":
+            title_string += " ["+pkmn.skin+" skin]"
+        print(title_string)
         print "CP: "+str(pkmn.cp)
         print "HP: "+str(pkmn.hp)
         print "Stardust: "+str(pkmn.dust)
@@ -771,6 +830,16 @@ def run_edit_pokemon(pkmn):
             pkmn.appraisal = UInp.input_appraisal()
             pkmn.bestStat = UInp.input_bestStat()
             pkmn.statLevel = UInp.input_stat_level()
+        elif cmd == "e":
+            pkmn.name = UInp.get_input("Pokemon Nickname?\n>  ")
+            pkmn.species = UInp.input_species()
+            pkmn.cp = UInp.input_cp()
+            pkmn.hp = UInp.input_hp()
+            pkmn.move_one = UInp.input_quick_move()
+            pkmn.move_two = UInp.input_charge_move()
+            print("")
+            pkmn.calculate_iv_options()
+            print("\n")
         elif cmd == "x":
             break
         # Command not found
@@ -873,16 +942,17 @@ def apply_ad_sort(params, sortFunc):
     currentFilter += params[0]+" "+ad
 
 
-def generate_all_pokemon():
+def generate_all_pokemon_with_wide_range_of_CPs():
     pokeList = []
-    for species in species.RAW_SPECIES_DATA:
-        count = int(species[SPECIES.Max_CP]/100)
+    for sp in Species.RAW_SPECIES_DATA:
+        species = Species.Species(sp[Species.SPECIES_KEYS.Name])
+        count = int(species.Max_CP/100)
         for cpLevel in range(count):
             cp = (cpLevel+1)*100
-            # print("Creating "+species[SPECIES.Name]+" "+str(cp))
+            # print("Creating "+species.Name+" "+str(cp))
 
             pkmn = PK.Pokemon()
-            pkmn.species = species[SPECIES.Name]
+            pkmn.species = species.Name
             pkmn.IVOptions = []
             pkmn.appraisal = 2
             # pkmn.bestStat = UInp.input_bestStat()
@@ -900,13 +970,13 @@ def generate_all_pokemon():
             atk = 10
             dfn = 10
             stm = 10
-            pkmn.hp = max(int(math.sqrt(PK.Pokemon._fLvl(lvl)) * (species[SPECIES.HP] + stm)), 10)
-            pkmn.cp = max(int((species[SPECIES.Attack]+atk) * math.sqrt(species[SPECIES.Defense]+dfn) * math.sqrt(species[SPECIES.HP]+stm) * PK.Pokemon._fLvl(lvl) / 10.0), 10)
+            pkmn.hp = max(int(math.sqrt(PK.Pokemon._fLvl(lvl)) * (species.HP + stm)), 10)
+            pkmn.cp = max(int((species.Attack+atk) * math.sqrt(species.Defense+dfn) * math.sqrt(species.HP+stm) * PK.Pokemon._fLvl(lvl) / 10.0), 10)
             pkmn.IVOptions = [str(lvl)+"_AAA"]
-            for mv1 in species[SPECIES.Quick_Moves]:
-                for mv2 in species[SPECIES.Charge_Moves]:
+            for mv1 in species.Quick_Moves:
+                for mv2 in species.Charge_Moves:
                     pkmn2 = PK.Pokemon()
-                    pkmn2.species = species[SPECIES.Name]
+                    pkmn2.species = species.Name
                     pkmn2.IVOptions = pkmn.IVOptions
                     pkmn2.appraisal = 2
                     pkmn2.statLevel = 1
@@ -915,10 +985,118 @@ def generate_all_pokemon():
                     pkmn2.move_one = mv1
                     pkmn2.move_two = mv2
                     pokeList.append(pkmn2)
-                    print("["+str(len(pokeList))+"] Created "+species[SPECIES.Name]+" "+str(pkmn.cp)+" with ("+mv1+"/"+mv2+")")
+                    print("["+str(len(pokeList))+"] Created "+species.Name+" "+str(pkmn.cp)+" with ("+mv1+"/"+mv2+")")
     fio.write_pokemon_to_file(pokeList, GENERATED_POKEMON_FILE_FULL_CP_RANGE)
 
 
+
+def generate_all_max_level_pokemon():
+    # TODO IMP
+    pokeList = []
+    for sp in Species.RAW_SPECIES_DATA:
+        species = Species.Species(sp[Species.SPECIES_KEYS.Name])
+        pkmn = PK.Pokemon()
+        pkmn.species = species.Name
+        pkmn.IVOptions = ["40.5_AAA"]
+        pkmn.appraisal = 3
+        pkmn.bestStat = 6
+        pkmn.statLevel = 3
+        pkmn.hp = max(int(math.sqrt(PK.Pokemon._fLvl(40.5)) * (species.HP + 15)), 10)
+        pkmn.cp = max(int((species.Attack+15) * math.sqrt(species.Defense+15) * math.sqrt(species.HP+15) * PK.Pokemon._fLvl(40.5) / 10.0), 10)
+        for mv1 in species.Quick_Moves:
+            for mv2 in species.Charge_Moves:
+                pkmn2 = pkmn.clone()
+                pkmn2.move_one = mv1
+                pkmn2.move_two = mv2
+                pokeList.append(pkmn2)
+                print("["+str(len(pokeList))+"] Created "+species.Name+" "+str(pkmn.cp)+" with ("+mv1+"/"+mv2+")")
+
+    fio.write_pokemon_to_file(pokeList, GENERATED_POKEMON_FILE_MAX_CP)    
+
+def generate_target_top_pokemon_list():
+    max_lvl_pokemon = fio.read_pokemon_from_file(GENERATED_POKEMON_FILE_MAX_CP)
+
+    legendaries = ["Articuno","Zapdos","Moltres","Mewtwo","Mew"]
+
+    # .-----------------------.
+    # |   Top Gym Attackers   |
+    # '-----------------------'
+
+    # Build results lists
+    print("Building Results List")
+    for defender in max_lvl_pokemon:
+        # Dont allow defenders to be non-max evolved
+        defender.results = []
+        defender.beats = []
+        defender.beaten_by = []
+        if Species.Species(defender.species).Evolves_Into[0] != "":
+            continue
+        print("  Evaluating Defender >> "+defender.species+" w/ "+defender.move_one+"/"+defender.move_two)
+        for attacker in max_lvl_pokemon:
+            # Dont allow attackers to be legendaries
+            if attacker.species in legendaries:
+                continue
+            result = PK.Pokemon.calculate_gym_attack_score_for_combatants(attacker, defender)
+            defender.results.append(result)
+
+    # Find the top result(s)
+    print("Processing Results")
+    for defender in max_lvl_pokemon:
+        if len(defender.results) == 0:
+            continue
+        defender.results.sort(key=lambda res: (res['gym_score']), reverse=True)
+        best_result = defender.results[0]
+
+        # Only use Top attacker
+        attacker = best_result['attacker']
+        attacker.beats.append(defender)
+        defender.beaten_by.append(attacker)
+        print("  "+defender.species+" w/ "+defender.move_one+"/"+defender.move_two+"  is beaten by  "+attacker.species+" w/ "+attacker.move_one+"/"+attacker.move_two)
+
+
+        # # Use all qualifying attackers
+        # for result in defender.results:
+        #     if result['gym_score'] >= 1.5 or best_result['gym_score']-result['gym_score'] <= 0.2:
+        #         attacker = result['attacker']
+        #         attacker.beats.append(defender)
+        #         defender.beaten_by.append(attacker)
+        #         print("  "+defender.species+" w/ "+defender.move_one+"/"+defender.move_two+"  is beaten by  "+attacker.species+" w/ "+attacker.move_one+"/"+attacker.move_two)
+        #     else:
+        #         break
+
+
+    # Find the best core of attackers, using a minimum-vertex-cover algorithm
+    print("Generating Core Attackers")
+    defenders_remaining = []
+    core_attackers = []
+    for defender in max_lvl_pokemon:
+        if len(defender.beaten_by) == 0:
+            continue
+        defenders_remaining.append(defender)
+    while len(defenders_remaining) > 0:
+        # Find the defender with the lowest number of successful attackers
+        best_defender = defenders_remaining[0]
+        for defender in defenders_remaining:
+            if len(defender.beaten_by) < len(best_defender.beaten_by):
+                best_defender = defender
+        print("  Found Defender >> "+best_defender.species+" w/ "+best_defender.move_one+"/"+best_defender.move_two)
+
+        # Find the attacker with the highest number successful attacks
+        best_attacker = best_defender.beaten_by[0]
+        for attacker in best_defender.beaten_by:
+            if len(attacker.beats) > len(best_attacker.beats):
+                best_attacker = attacker
+
+        # Add the attacker to the list
+        core_attackers.append(best_attacker)
+        print("  Adding Attacker >> "+best_attacker.species+" w/ "+best_attacker.move_one+"/"+best_attacker.move_two)
+        iter_list = [p for p in best_attacker.beats]
+        for defender in iter_list:
+            print("    Removing defender >> "+defender.species+" w/ "+defender.move_one+"/"+defender.move_two)
+            for attacker in defender.beaten_by:
+                attacker.beats.remove(defender)
+            defender.beaten_by.remove(best_attacker)
+            defenders_remaining.remove(defender)
 
 
 
@@ -928,6 +1106,7 @@ def generate_all_pokemon():
 
 PKMN_FILE = "Lists/PoGoCollection.txt"
 GENERATED_POKEMON_FILE_FULL_CP_RANGE = "Lists/generated_pokemon_full.txt"
+GENERATED_POKEMON_FILE_MAX_CP = "Lists/generated_pokemon_max.txt"
 
 def sort_pokemon():
     pkmnList.sort(key=lambda pk: (pk.id()*5000)+(5000-int(pk.cp)))
@@ -1044,5 +1223,6 @@ read_pokemon_collection()
 # TODO: Implement a write-to-temp-file/rename system, and/or a collection backup system
 write_pokemon_collection()
 
+# generate_target_top_pokemon_list()
 # Run the main input loop
 run()
