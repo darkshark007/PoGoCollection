@@ -277,6 +277,8 @@ Select Command:
                     pkmn.IVOptions = []
                     pkmn.calculate_iv_options(False)
                     gymList.append(pkmn)
+                    gymList.sort(key=lambda pk: (pk.cp))                    
+
 
                 elif cmd == "e":
                     if len(gymList) == 0:
@@ -335,10 +337,17 @@ Select Command:
 
                             # Pruning
                             if isFriendlyGym:
-                                if pk.cp > int(pkmn.cp*0.5) and pk.cp > min_cp:
-                                    continue
+                                if print_count > 10:
+                                    break
+
+                                if pk.cp > int(pkmn.cp*0.5):
+                                    if (pk.cp*0.9) > min_cp:
+                                        continue
+                                    else:
+                                        min_cp = pk.cp
                                 else:
                                     min_cp = pk.cp
+                                    print_count += 1
                             else:
                                 if print_count > 10:
                                     break
@@ -691,7 +700,7 @@ Mark:
         for i in range(len(fullList)+1):
             results.append(None)
 
-        threads_available = 32
+        threads_available = 2
         thread_index = 0
         print_index = 0
         start_time = time.time()
