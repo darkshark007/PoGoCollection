@@ -122,6 +122,7 @@ def list_pokemon():
     print(divider_string)
     # TODO List IVs?
     for idx, pkmn in enumerate(filteredList):
+        species = Species.Species(pkmn.species)
         # Idx  | Nickname     | Species      | CP
         printString = ""
 
@@ -135,7 +136,10 @@ def list_pokemon():
 
         # Print Species
         if should_show['Species'][0]:
-            printString += pad_right(pkmn.species, should_show['Species'][1])+" | "
+            tempString = pad_right(pkmn.species, should_show['Species'][1])
+            if pkmn.skin is not "":
+                tempString = bcolors.Cyan+tempString+bcolors.Clear
+            printString += tempString+" | "
 
         # Print CP
         if should_show['CP'][0]:
@@ -153,11 +157,17 @@ def list_pokemon():
 
         # Print Basic Move
         if should_show['Move1'][0]:
-            printString += pad_left(pkmn.move_one, should_show['Move1'][1])+" | "
+            moveString = pad_left(pkmn.move_one, should_show['Move1'][1])
+            if (not (pkmn.move_one in species.Quick_Moves)):
+                moveString = bcolors.Orange+moveString+bcolors.Clear
+            printString += moveString+" | "
 
         # Print Charge Move
         if should_show['Move2'][0]:
-            printString += pad_left(pkmn.move_two, should_show['Move2'][1])+" | "
+            moveString = pad_left(pkmn.move_two, should_show['Move1'][1])
+            if (not (pkmn.move_two in species.Charge_Moves)):
+                moveString = bcolors.Orange+moveString+bcolors.Clear
+            printString += moveString+" | "
 
         # Print Mark
         if should_show['Mark'][0]:
@@ -461,6 +471,11 @@ Mark:
   [em] Max Evolved Pokemon
   [gc] Top-Scoring Gym Combatants
 
+Modifiers:
+  [!]  Negate Mark criteria
+  [^]  Flip Mark result
+  [%]  Use filtered list instead of full list to apply Marks
+
   [x]  Clear Markers
 > """
 
@@ -633,6 +648,14 @@ Mark:
         for pkmn in pkList:
             species = Species.Species(pkmn.species)
             if species.Evolves_Into[0] == "":
+                mark_pokemon(pkmn, True)
+            else:
+                mark_pokemon(pkmn, False)
+
+    elif cmd == "leg":
+        for pkmn in pkList:
+            species = Species.Species(pkmn.species)
+            if (not (pkmn.move_one in species.Quick_Moves)) or (not (pkmn.move_two in species.Charge_Moves)):
                 mark_pokemon(pkmn, True)
             else:
                 mark_pokemon(pkmn, False)

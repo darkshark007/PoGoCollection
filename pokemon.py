@@ -377,6 +377,8 @@ class Pokemon:
             )
         mv1Speed = mv1Data[Moves.BASIC_MOVE.Duration]
         mv1NrgGain = mv1Data[Moves.BASIC_MOVE.NRG]
+        if mv1NrgGain is 0:
+            mv1NrgGain = 0.000001
         mv2Data = Moves._get_charge_move_by_name(attacker.move_two)
         mv2Type = mv2Data[Moves.CHARGE_MOVE.Type]
         mv2STAB = 1.25 if mv2Type == atkSpeciesData.Type1 or mv2Type == atkSpeciesData.Type2 else 1.0
