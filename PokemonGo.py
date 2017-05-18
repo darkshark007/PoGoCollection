@@ -528,9 +528,12 @@ Modifiers:
             mark_pokemon(filteredList[idx],True)
 
     elif cmd == "l":
-        lvl = UInp.input_float("Level?\n>  ",1, 40.5)
+        lvlMin = UInp.input_float("Min Level?\n>  ",1, 40.5)
+        lvlMax = UInp.input_float("Max Level?  (0 for non-range)\n>  ",0, 40.5)
         for pkmn in pkList:
-            if lvl == pkmn.get_level():
+            if lvlMax == 0 and lvlMin == pkmn.get_level():
+                mark_pokemon(pkmn,True)
+            elif lvlMax != 0 and lvlMin <= pkmn.get_level() and pkmn.get_level() <= lvlMax:
                 mark_pokemon(pkmn,True)
             else:
                 mark_pokemon(pkmn,False)
