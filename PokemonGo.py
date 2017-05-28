@@ -56,15 +56,16 @@ currentFilter = ""
 savedViews = []
 
 should_show = {
-    'Idx':      [True,  4],
-    'Nickname': [True, 12],
-    'Species':  [True, 12],
-    'CP':       [True,  4],
-    'IVs':      [True,  5, 5, 6],
-    'Move1':    [True, 22],
-    'Move2':    [True, 22],
-    'Mark':     [True,  5],
-    'Skin':     [False, 12],
+    'Idx':         [True,  4],
+    'Nickname':    [True, 12],
+    'Species':     [True, 12],
+    'CP':          [True,  4],
+    'IVs':         [True,  5, 5, 6],
+    'Move1':       [True, 22],
+    'Move2':       [True, 22],
+    'Mark':        [True,  5],
+    'Skin':        [False, 12],
+    'Move_Score':  [False, 5],
 }
 def list_pokemon():
 
@@ -118,6 +119,9 @@ def list_pokemon():
     if should_show['Skin'][0]:
         title_string += pad_center('Skin', should_show['Skin'][1])+" | "
         divider_string += "-"*should_show['Skin'][1]+"-:-"
+    if should_show['Move_Score'][0]:
+        title_string += pad_center('Score', should_show['Move_Score'][1])+" | "
+        divider_string += "-"*should_show['Move_Score'][1]+"-:-"
     print(title_string)
     print(divider_string)
     # TODO List IVs?
@@ -176,6 +180,11 @@ def list_pokemon():
         # Print Skin
         if should_show['Skin'][0]:
             printString += pad_right(str(pkmn.skin), should_show['Skin'][1])+" | "
+
+        # Print Move_Score
+        if should_show['Move_Score'][0]:
+            payload = pkmn.calculate_type_advantages()
+            printString += pad_right(str(round(1000*payload['max_score'])/1000), should_show['Move_Score'][1])+" | "
 
         print(printString)    
 
@@ -564,18 +573,21 @@ Modifiers:
     elif cmd == "in":
         inp_N = UInp.input_number("N?\n> ")
         # TODO Remove Skip Marked pokemon, implement with filter
-        inp_skip = UInp.input_tf("Skip currently marked pokemon?\n>  ")
+        # inp_skip = UInp.input_tf("Skip currently marked pokemon?\n>  ")
         inp_moveset = UInp.input_tf("Per moveset?\n>  ")
+        inp_skin = UInp.input_tf("Per skin?\n>  ")
         # Construct the IV list
         pk_sets = {}
 
         # Loop and break the list into sets
         for pkmn in pkList:
-            if inp_skip and pkmn.marked:
-                continue
+            # if inp_skip and pkmn.marked:
+            #     continue
             key = str(Species.get_id_from_species(pkmn.species))
             if inp_moveset:
                 key += "-"+pkmn.move_one+"-"+pkmn.move_two
+            if inp_skin:
+                key += "-"+pkmn.skin
             try:
                 pk_sets[key].append(pkmn)
             except KeyError:
@@ -1257,6 +1269,11 @@ read_pokemon_collection()
 # Write back to collection file, Useful for output refactors/migrations
 # TODO: Implement a write-to-temp-file/rename system, and/or a collection backup system
 write_pokemon_collection()
+
+# for pkm in pkmnList:
+#     payload = pkm.calculate_type_advantages()
+#     print("  max_score: "+str(payload["max_score"]))
+# exit()
 
 # generate_target_top_pokemon_list()
 # Run the main input loop

@@ -24,6 +24,7 @@ class Pokemon:
         self.strengths = []
         self.weaknesses = []
         self.marked = False
+        self.typeAdvantages = None
 
     def clone(self):
         pk = Pokemon()
@@ -490,6 +491,52 @@ class Pokemon:
     def id(self):
         return Species.get_id_from_species(self.species)
 
+    def calculate_type_advantages(self):
+        if self.typeAdvantages is not None:
+            return self.typeAdvantages
+
+        # print(self.name+"/"+self.species+"/"+str(self.cp)+"  "+self.move_one+"/"+self.move_two)
+        speciesData = Species.Species(self.species)
+        payload = {
+            "min_score": 2000,
+            "max_score": 0
+        }
+        for t in TYPE_ADVANTAGE_KEYS:
+            entry = {}
+            # print("for type "+t)
+            
+            def_score = get_ratio_from_types(speciesData.Type1,t)*get_ratio_from_types(speciesData.Type2,t)
+            entry["def_score"] = def_score
+            # print("  def_score:  "+str(def_score))
+
+            mv1Data = Moves._get_basic_move_by_name(self.move_one)
+            mv1Type = mv1Data[Moves.BASIC_MOVE.Type]
+            atk_score_1 = get_ratio_from_types(mv1Type,t)
+            if mv1Type == speciesData.Type1 or mv1Type == speciesData.Type2:
+                atk_score_1 *= 1.25
+            entry["atk_score_1"] = atk_score_1
+            # print("  atk_score_1:  "+str(atk_score_1))
+
+            mv2Data = Moves._get_charge_move_by_name(self.move_two)            
+            mv2Type = mv2Data[Moves.CHARGE_MOVE.Type]
+            atk_score_2 = get_ratio_from_types(mv2Type,t)
+            if mv2Type == speciesData.Type1 or mv2Type == speciesData.Type2:
+                atk_score_2 *= 1.25
+            entry["atk_score_2"] = atk_score_2
+            # print("  atk_score_2:  "+str(atk_score_2))
+
+            overall_score = ((atk_score_1 + atk_score_2)/2.0)*def_score
+            entry["overall_score"] = overall_score
+            # print("  overall_score:  "+str(overall_score))
+
+            if overall_score > payload["max_score"]:
+                payload["max_score"] = overall_score
+            payload[t] = entry
+        
+        self.typeAdvantages = payload
+        return self.typeAdvantages
+
+
 
 HEX_LIST = ["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"]
 def _int_to_hex(i):
@@ -531,5 +578,3 @@ def get_ratio_from_types(type1,type2):
         return TYPE_ADVANTAGE_BONUSES[idx_type1][idx_type2]
     except ValueError:
         return 1
-
-
