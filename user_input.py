@@ -11,6 +11,8 @@ def get_input(displayString):
         if inp == "pause":
             raw_input("Input paused.  Press Enter to continue\n>  ")
             return get_input(displayString)
+        elif inp == "!!":
+            return raw_input(displayString)
         else:
             print(displayString+inp)
 
@@ -104,8 +106,8 @@ def input_species():
             return Species.RAW_SPECIES_DATA[inp_num-1][Species.SPECIES_KEYS.Name]
     except ValueError:
         # Maybe they entered a name?
-        inp_num = Species.get_id_from_species(inp)
-        if inp_num == -1:
+        species = Species.Species(inp)
+        if species.Id == -1:
             print("Could not find Species Name or ID # for \'"+inp+"\'")
             print("Did you mean...")
             for species in Species.RAW_SPECIES_DATA:
@@ -114,7 +116,7 @@ def input_species():
             print("\n")
             return input_species()
         else:
-            return Species.RAW_SPECIES_DATA[inp_num-1][Species.SPECIES_KEYS.Name]
+            return species.Name
 
 
 def input_cp():
@@ -281,6 +283,10 @@ def input_pkmn_list_index_list(max_value):
     values = []
     try:
         for i in range(len(inp)):
+            # Check for -1
+            if inp[i] == "-1":
+                return []
+
             # Check for range
             spl = inp[i].strip().split("-")
             if len(spl) == 2:
@@ -304,7 +310,7 @@ def input_pkmn_list_index_list(max_value):
             values.append(inp[i])
         return values
     except ValueError:
-        print("Invalid number value \'"+inp+"\'")
+        print("Invalid number value \'"+str(inp)+"\'")
         return input_pkmn_list_index_list(max_value)    
 
 

@@ -21,9 +21,9 @@ class Pokemon:
         self.IVOptions = []
         self.minIV = 0
         self.maxIV = 45
-        self.strengths = []
-        self.weaknesses = []
-        self.marked = False
+        # self.strengths = []
+        # self.weaknesses = []
+        self.marks = []
         self.typeAdvantages = None
 
     def clone(self):
@@ -44,9 +44,9 @@ class Pokemon:
         pk.IVOptions = [s for s in self.IVOptions]
         pk.minIV = self.minIV
         pk.maxIV = self.maxIV
-        pk.strengths = self.strengths
-        pk.weaknesses = self.weaknesses
-        pk.marked = self.marked
+        # pk.strengths = self.strengths
+        # pk.weaknesses = self.weaknesses
+        pk.marks = [s for s in self.marks]
         return pk
 
 
@@ -264,6 +264,34 @@ class Pokemon:
             countSum = (((((self.cp-10)/(species.Max_CP-10))*79))/2)+1
         avgLevel = round(((countSum * 2)/count))/2.0
         return avgLevel
+
+
+    def get_min_level(self):
+        min_level = 45
+        count = 0
+        for opt in self.IVOptions:
+            level = float(opt.split("_")[0])
+            count += 1
+            if min_level > level:
+                min_level = level
+        if count == 0:
+            species = Species.Species(self.species)
+            min_level = (((((self.cp-10)/(species.Max_CP-10))*79))/2)+1
+        return min_level
+
+
+    def get_max_level(self):
+        max_level = -1
+        count = 0
+        for opt in self.IVOptions:
+            level = float(opt.split("_")[0])
+            count += 1
+            if max_level < level:
+                max_level = level
+        if count == 0:
+            species = Species.Species(self.species)
+            max_level = (((((self.cp-10)/(species.Max_CP-10))*79))/2)+1
+        return max_level
 
 
     def get_IVs(self):

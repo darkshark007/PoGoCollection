@@ -18,8 +18,6 @@ import pokemon as PK
 filter_interface = """
 Select Filter or Sort:
   [x] CLEAR ACTIVE FILTERS
-  [s] Save Active Filters #Imp
-  [l] Load Saved Filter #Imp
 
   Filter by:
     [fs]  Species Name
@@ -58,13 +56,13 @@ savedViews = []
 should_show = {
     'Idx':         [True,  4],
     'Nickname':    [True, 12],
-    'Species':     [True, 12],
+    'Species':     [True, 16],
     'CP':          [True,  4],
     'IVs':         [True,  5, 5, 6],
     'Move1':       [True, 22],
     'Move2':       [True, 22],
-    'Mark':        [True,  5],
-    'Skin':        [False, 12],
+    'Mark':        [True,  35],
+    'Skin':        [True, 20],
     'Move_Score':  [False, 5],
 }
 def list_pokemon():
@@ -114,7 +112,7 @@ def list_pokemon():
         title_string += pad_center('Charge Move', should_show['Move2'][1])+" | "
         divider_string += "-"*should_show['Move2'][1]+"-:-"
     if should_show['Mark'][0]:
-        title_string += pad_center('Mark', should_show['Mark'][1])+" | "
+        title_string += pad_center('Marks', should_show['Mark'][1])+" | "
         divider_string += "-"*should_show['Mark'][1]+"-:-"
     if should_show['Skin'][0]:
         title_string += pad_center('Skin', should_show['Skin'][1])+" | "
@@ -175,7 +173,7 @@ def list_pokemon():
 
         # Print Mark
         if should_show['Mark'][0]:
-            printString += pad_left(str(pkmn.marked), should_show['Mark'][1])+" | "
+            printString += pad_left(str(pkmn.marks), should_show['Mark'][1])+" | "
 
         # Print Skin
         if should_show['Skin'][0]:
@@ -221,6 +219,9 @@ Select Command:
             pkmn = PK.Pokemon()
             pkmn.name = UInp.get_input("Pokemon Nickname?\n>  ")
             pkmn.species = UInp.input_species()
+            if pkmn.name[0] == "$":
+                pkmn.name = pkmn.name[1:10000]
+                pkmn.skin = UInp.get_input("Skin?\n>  ")
             pkmn.cp = UInp.input_cp()
             pkmn.hp = UInp.input_hp()
             pkmn.dust = UInp.input_dust()
@@ -410,12 +411,7 @@ Select Command:
             if cmd == "x": # CLEAR FILTERS
                 print("List Filters Cleared")
                 currentFilter = ""
-            elif cmd == "s": # Save 
-                print("Saving Active Filters...")
-                # TODO Implement
-            elif cmd == "l": # Save 
-                print("Loading Saved Filter...")
-                # TODO Implement
+
             # Filters
             elif cmd == "fs": # Filter by Species
                 currentFilter += "species"
@@ -469,16 +465,19 @@ Select Command:
 def run_mark_pokemon():
     mark_pokemon_interface = """
 Mark:
-  [i]  List of Pokemon from filtered list by Index
-  [k]  Pokemon with Skins
-  [l]  Pokemon at a specific level
-  [n]  Pokemon with given name
-  [s]  Pokemon of a particular species
-  [cp] N Highest CP Pokemon
-  [in] N Highest IV's per Species and/or Moveset
-  [iv] Pokemon at or above a specific IV, in points [0-45]
-  [em] Max Evolved Pokemon
-  [gc] Top-Scoring Gym Combatants
+  [i]    List of Pokemon from filtered list by Index
+  [k]    Pokemon with Skins
+  [l]    Pokemon at a specific level
+  [n]    Pokemon with given name
+  [s]    Pokemon of a particular species
+  [cp]   N Highest CP Pokemon
+  [in]   N Highest IV's per Species and/or Moveset
+  [iv]   Pokemon at or above a specific IV, in points [0-45]
+  [em]   Max Evolved Pokemon
+  [gc]   Top-Scoring Gym Combatants
+  [leg]  Pokemon with legacy movesets
+  [mvt]  Moves of the same type + type advantage
+  [lgdy] Legendary Pokemon
 
 Modifiers:
   [!]  Negate Mark criteria
@@ -487,7 +486,6 @@ Modifiers:
 
   [x]  Clear Markers
 > """
-
     cmd = UInp.get_input(mark_pokemon_interface).lower()
 
     # Allow all mark commands to be negatable
@@ -513,22 +511,37 @@ Modifiers:
         # print("Marking "+pkmn.name+" ("+pkmn.species+") "+str(pkmn.cp)+"cp == "+str(result))
         if flip:
             if result is True and negate is False:
-                pkmn.marked = False
+                if mark_name in pkmn.marks:
+                    pkmn.marks.remove(mark_name)
             if result is True and negate is True:
                 return # Dont mark false
             if result is False and negate is True:
-                pkmn.marked = False
+                if mark_name in pkmn.marks:
+                    pkmn.marks.remove(mark_name)
             if result is False and negate is False:
                 return # Dont mark false
         else:
             if result is True and negate is False:
-                pkmn.marked = True
+                pkmn.marks.append(mark_name)
             if result is True and negate is True:
                 return # Dont mark false
             if result is False and negate is True:
-                pkmn.marked = True
+                pkmn.marks.append(mark_name)
             if result is False and negate is False:
                 return # Dont mark false
+
+    if cmd == "x":
+        mark_name = UInp.get_input("Mark Name? (Or blank for all marks)\n> ")
+        if mark_name is "":
+            for pkmn in pkList:
+                pkmn.marks = []
+        else:
+            for pkmn in pkList:
+                while mark_name in pkmn.marks:
+                    pkmn.marks.remove(mark_name)
+        return
+
+    mark_name = UInp.get_input("Mark Name?\n> ")
 
     if cmd == "i":
         list_pokemon()
@@ -540,9 +553,11 @@ Modifiers:
         lvlMin = UInp.input_float("Min Level?\n>  ",1, 40.5)
         lvlMax = UInp.input_float("Max Level?  (0 for non-range)\n>  ",0, 40.5)
         for pkmn in pkList:
-            if lvlMax == 0 and lvlMin == pkmn.get_level():
+            min_level = pkmn.get_min_level()
+            max_level = pkmn.get_max_level()
+            if lvlMax == 0 and lvlMin >= min_level and lvlMin <= max_level:
                 mark_pokemon(pkmn,True)
-            elif lvlMax != 0 and lvlMin <= pkmn.get_level() and pkmn.get_level() <= lvlMax:
+            elif lvlMax != 0 and ((lvlMin >= min_level and lvlMin <= max_level) or (lvlMax >= min_level and lvlMax <= max_level)):
                 mark_pokemon(pkmn,True)
             else:
                 mark_pokemon(pkmn,False)
@@ -572,8 +587,7 @@ Modifiers:
 
     elif cmd == "in":
         inp_N = UInp.input_number("N?\n> ")
-        # TODO Remove Skip Marked pokemon, implement with filter
-        # inp_skip = UInp.input_tf("Skip currently marked pokemon?\n>  ")
+        inp_family = UInp.input_tf("Per family?\n>  ")
         inp_moveset = UInp.input_tf("Per moveset?\n>  ")
         inp_skin = UInp.input_tf("Per skin?\n>  ")
         # Construct the IV list
@@ -581,13 +595,16 @@ Modifiers:
 
         # Loop and break the list into sets
         for pkmn in pkList:
-            # if inp_skip and pkmn.marked:
-            #     continue
-            key = str(Species.get_id_from_species(pkmn.species))
+            species = Species.Species(pkmn.species)
+            if inp_family:
+                key = str(species.Family)
+            else:
+                key = str(species.Id)
             if inp_moveset:
                 key += "-"+pkmn.move_one+"-"+pkmn.move_two
             if inp_skin:
-                key += "-"+pkmn.skin
+                if pkmn.skin is not "":
+                    key += "-"+pkmn.skin
             try:
                 pk_sets[key].append(pkmn)
             except KeyError:
@@ -668,9 +685,142 @@ Modifiers:
                 mark_pokemon(pkmn, False)
 
     elif cmd == "leg":
+        inp_effective = UInp.input_tf("Type-Effective Moves?\n>  ")
+        # inp_effective = False
+        # f;x;m;x;;m;leg;leg;n;f;fm+;leg;n;m;leg;test;y;l
+        for pkmn in pkList:
+            # print("Checking "+pkmn.name+"/"+pkmn.species+"/"+str(pkmn.cp)+"/"+str(pkmn.hp))
+            species = Species.Species(pkmn.species)
+            mv1_legacy = not (pkmn.move_one in species.Quick_Moves)
+            mv1Data = Moves._get_basic_move_by_name(pkmn.move_one)
+            if mv1_legacy and inp_effective:
+                # print("  Move 1 is legacy ")
+                mv1_legacy = False
+                mv1Type = mv1Data[Moves.BASIC_MOVE.Type]
+                mv1STAB = 1.25 if mv1Type == species.Type1 or mv1Type == species.Type2 else 1.0
+                for def_type1 in PK.TYPE_ADVANTAGE_KEYS:
+                    for def_type2 in PK.TYPE_ADVANTAGE_KEYS:
+                        if def_type1 == def_type2:
+                            continue
+
+                        # print("  Checking Types "+def_type1+"/"+def_type2)
+                        ratio = mv1STAB
+
+                        # Offensive Bonus
+                        ratio = ratio * PK.get_ratio_from_types(mv1Type,def_type1)
+                        ratio = ratio * PK.get_ratio_from_types(mv1Type,def_type2)
+
+                        # Defensive Bonus
+                        defense_ratio = 1.0
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type1)
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type2)
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type2, species.Type1)
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type2, species.Type2)
+
+                        if ratio > 1.26 and defense_ratio <= 1.0:
+                            # print("True!  >> "+str(ratio)+"/"+str(defense_ratio))
+                            mv1_legacy = True
+
+                        if mv1_legacy:
+                            break
+
+                    ratio = mv1STAB
+
+                    # Offensive Bonus
+                    ratio = ratio * PK.get_ratio_from_types(mv1Type,def_type1)
+
+                    # Defensive Bonus
+                    defense_ratio = 1.0
+                    defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type1)
+                    defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type2)
+
+                    if ratio > 1.26 and defense_ratio <= 1.0:
+                        mv1_legacy = True
+
+
+                    if mv1_legacy:
+                        break
+
+            mv2_legacy = not (pkmn.move_two in species.Charge_Moves)
+            mv2Data = Moves._get_charge_move_by_name(pkmn.move_two)
+            if mv2_legacy and inp_effective:
+                # print("  Move 2 is legacy ")
+                mv2_legacy = False
+                mv2Type = mv2Data[Moves.BASIC_MOVE.Type]
+                mv2STAB = 1.25 if mv2Type == species.Type1 or mv2Type == species.Type2 else 1.0
+                for def_type1 in PK.TYPE_ADVANTAGE_KEYS:
+                    for def_type2 in PK.TYPE_ADVANTAGE_KEYS:
+                        if def_type1 == def_type2:
+                            continue
+
+                        # print("  Checking Types "+def_type1+"/"+def_type2)
+                        ratio = mv2STAB
+
+                        # Offensive Bonus
+                        ratio = ratio * PK.get_ratio_from_types(mv2Type,def_type1)
+                        ratio = ratio * PK.get_ratio_from_types(mv2Type,def_type2)
+
+                        # Defensive Bonus
+                        defense_ratio = 1.0
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type1)
+                        # print('>> '+str(defense_ratio))
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type2)
+                        # print('>> '+str(defense_ratio))
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type2, species.Type1)
+                        # print('>> '+str(defense_ratio))
+                        defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type2, species.Type2)
+                        # print('>> '+str(defense_ratio))
+
+                        if ratio > 1.26 and defense_ratio <= 1.0:
+                            # print("True!  >> "+str(ratio)+"/"+str(defense_ratio))
+                            mv2_legacy = True
+
+                        if mv2_legacy:
+                            break
+
+                    ratio = mv2STAB
+
+                    # Offensive Bonus
+                    ratio = ratio * PK.get_ratio_from_types(mv2Type,def_type1)
+
+                    # Defensive Bonus
+                    defense_ratio = 1.0
+                    defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type1)
+                    defense_ratio = defense_ratio * PK.get_ratio_from_types(def_type1, species.Type2)
+
+                    if ratio > 1.26 and defense_ratio <= 1.0:
+                        mv2_legacy = True
+
+                    if mv2_legacy:
+                        break
+
+
+            if (mv1_legacy) or (mv2_legacy):
+                mark_pokemon(pkmn, True)
+            else:
+                mark_pokemon(pkmn, False)
+
+    elif cmd == "lgdy":
         for pkmn in pkList:
             species = Species.Species(pkmn.species)
-            if (not (pkmn.move_one in species.Quick_Moves)) or (not (pkmn.move_two in species.Charge_Moves)):
+            if (species.Id in Species.LEGENDARY_SPECIES_IDS):
+                mark_pokemon(pkmn, True)
+            else:
+                mark_pokemon(pkmn, False)
+
+    elif cmd == "mvt":
+        for pkmn in pkList:
+            species = Species.Species(pkmn.species)
+            shouldMark = False
+            mv1Data = Moves._get_basic_move_by_name(pkmn.move_one)
+            mv1Type = mv1Data[Moves.BASIC_MOVE.Type].lower()
+            mv2Data = Moves._get_charge_move_by_name(pkmn.move_two)
+            mv2Type = mv2Data[Moves.CHARGE_MOVE.Type].lower()
+            types_equal = mv1Type == mv2Type
+            payload = pkmn.calculate_type_advantages()
+            type_advantage = types_equal and payload["max_score"] > 1
+            print(pkmn.name+"/"+pkmn.species+"/"+str(pkmn.cp)+"  "+str(types_equal)+"/"+str(type_advantage))
+            if type_advantage:
                 mark_pokemon(pkmn, True)
             else:
                 mark_pokemon(pkmn, False)
@@ -763,7 +913,7 @@ Modifiers:
                     for pkIdx in ls[tier]:
                         # TODO: Can I refactor this so it supports negation?  Combine all the tiers into one list and iterate over pkmnList, comparing to the built list?
                         pkmn = pkList[pkIdx]
-                        pkmn.marked = True
+                        pkmn.marks.append(mark_name)
                         printString += "  ["+str(tier)+"] "+pkmn.name+" ("+pkmn.species+") "+str(pkmn.cp)+"cp with a score of "+str(scores[tier])+"\n"
 
                 # Discard
@@ -808,10 +958,6 @@ Modifiers:
         print("Total Time: "+str(tMin)+"m"+str(tSec)+"s")
 
 
-    elif cmd == "x":
-        for pkmn in pkList:
-            pkmn.marked = False
-
 def run_edit_pokemon(pkmn):
     edit_pokemon_interface = """
   Edit Pokemon:
@@ -846,7 +992,8 @@ def run_edit_pokemon(pkmn):
             sp = iv.split("_")
             if len(sp) != 2:
                 continue
-            print "L "+sp[0]+"  "+str(PK._hex_to_int(sp[1][0]))+" / "+str(PK._hex_to_int(sp[1][1]))+" / "+str(PK._hex_to_int(sp[1][2]))
+            pointSum = PK._hex_to_int(sp[1][0])+PK._hex_to_int(sp[1][1])+PK._hex_to_int(sp[1][2])
+            print "L "+sp[0]+"  "+str(PK._hex_to_int(sp[1][0]))+" / "+str(PK._hex_to_int(sp[1][1]))+" / "+str(PK._hex_to_int(sp[1][2]))+" ("+str(int(pointSum/0.045)/10.0)+")"
         print
         print "Moves: "+pkmn.move_one+"/"+pkmn.move_two
         print "Appraisal: "+str(pkmn.appraisal)+" / "+str(pkmn.bestStat)+" / "+str(pkmn.statLevel)
@@ -934,11 +1081,17 @@ def apply_active_filters():
             cp = int(apply_yn_filter(params,UInp.input_cp))
             filteredList = [pk for pk in filteredList if pk.cp <= cp ]
         elif params[0] == "marked": # Marked
-            apply_yn_filter(params)
-            filteredList = [pk for pk in filteredList if pk.marked == True ]
+            mark_name = apply_yn_filter(params, lambda: UInp.get_input("Mark Name?\n> "))
+            if mark_name is "":
+                filteredList = [pk for pk in filteredList if len(pk.marks) is not 0 ]
+            else:
+                filteredList = [pk for pk in filteredList if mark_name in pk.marks ]
         elif params[0] == "nonmarked": # Non-marked
-            apply_yn_filter(params)
-            filteredList = [pk for pk in filteredList if pk.marked == False ]
+            mark_name = apply_yn_filter(params, lambda: UInp.get_input("Mark Name?\n> "))
+            if mark_name is "":
+                filteredList = [pk for pk in filteredList if len(pk.marks) is 0 ]                
+            else:
+                filteredList = [pk for pk in filteredList if mark_name not in pk.marks ]
         elif params[0] == "sortName": # Name Sort
             apply_ad_sort(params, sortFunc=lambda pk: pk.name)
         elif params[0] == "sortCP": # CP Sort
@@ -1060,6 +1213,27 @@ def generate_all_max_level_pokemon():
 
     fio.write_pokemon_to_file(pokeList, GENERATED_POKEMON_FILE_MAX_CP)    
 
+def generate_all_cps_for_pokemon(pkmn):
+    # TODO IMP
+    species = Species.Species(pkmn)
+    pokeList = []
+    for lvl in range(1,81):
+        lvl_actual = ((lvl/2.0)+0.5)
+        for atk in range(0,16):
+            for defn in range(0,16):
+                for stam in range(0,16):
+                    pkmn = PK.Pokemon()
+                    pkmn.species = species.Name
+                    iv_string = str(lvl_actual)+"_"+str(PK._int_to_hex(atk))+str(PK._int_to_hex(defn))+str(PK._int_to_hex(stam))
+                    pkmn.name = iv_string
+                    pkmn.IVOptions = [iv_string]
+                    pkmn.hp = max(int(math.sqrt(PK.Pokemon._fLvl(lvl_actual)) * (species.HP + stam)), 10)
+                    pkmn.cp = max(int((species.Attack+atk) * math.sqrt(species.Defense+defn) * math.sqrt(species.HP+stam) * PK.Pokemon._fLvl(lvl_actual) / 10.0), 10)
+                    pokeList.append(pkmn)
+                    print("["+str(len(pokeList))+"] Created "+species.Name+" "+str(pkmn.cp)+", "+str(pkmn.hp)+", "+str(pkmn.IVOptions))
+
+    fio.write_pokemon_to_file(pokeList, GENERATED_POKEMON_FILE_ALL_CPS)
+
 def generate_target_top_pokemon_list():
     max_lvl_pokemon = fio.read_pokemon_from_file(GENERATED_POKEMON_FILE_MAX_CP)
 
@@ -1154,6 +1328,7 @@ def generate_target_top_pokemon_list():
 PKMN_FILE = "Lists/PoGoCollection.txt"
 GENERATED_POKEMON_FILE_FULL_CP_RANGE = "Lists/generated_pokemon_full.txt"
 GENERATED_POKEMON_FILE_MAX_CP = "Lists/generated_pokemon_max.txt"
+GENERATED_POKEMON_FILE_ALL_CPS = "Lists/generated_pokemon_all_cp.txt"
 
 def sort_pokemon():
     pkmnList.sort(key=lambda pk: (pk.id()*5000)+(5000-int(pk.cp)))
@@ -1276,5 +1451,8 @@ write_pokemon_collection()
 # exit()
 
 # generate_target_top_pokemon_list()
+
+# generate_all_cps_for_pokemon('Magikarp')
+
 # Run the main input loop
 run()
