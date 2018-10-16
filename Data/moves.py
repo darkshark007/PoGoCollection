@@ -8,6 +8,9 @@ class BASIC_MOVE:
     NRGPS = 6
     DPS = 7
 
+# Adapted from the GAME_MASTER_FILE Json Output at:
+# https://github.com/pokemongo-dev-contrib/pokemongo-game-master/
+# https://raw.githubusercontent.com/pokemongo-dev-contrib/pokemongo-game-master/master/versions/latest/GAME_MASTER.json
 BASIC_MOVE_DATA = [
     # ID, Name,Type, PW, Duration (ms), NRG, NRGPS, DPS
     [200,"Fury Cutter","Bug",3,400,6,15,7.5],
@@ -92,6 +95,9 @@ class CHARGE_MOVE:
     Crit = 5
     NRG = 6
     
+# Adapted from the GAME_MASTER_FILE Json Output at:
+# https://github.com/pokemongo-dev-contrib/pokemongo-game-master/
+# https://raw.githubusercontent.com/pokemongo-dev-contrib/pokemongo-game-master/master/versions/latest/GAME_MASTER.json
 CHARGE_MOVE_DATA = [
     # ID    Name    Type    PW  Duration (ms)   Crit%   NRG Cost
     [13,"Wrap","Normal",60,2900,5,33],
@@ -225,6 +231,7 @@ CHARGE_MOVE_DATA = [
     [296,"Frenzy Plant","Grass",100,2600,5,50],
     [298,"Blast Burn","Fire",110,3300,5,50],
     [299,"Hydro Cannon","Water",90,1900,5,50],
+    [300,"Last Resort","Normal",90,2900,5,50],
 ]
 
 
